@@ -8,7 +8,10 @@
     "scheme": "delacroix",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "bundleIdentifier": "com.delacroix.app",
+      "buildNumber": "1",
+      "icon": "./assets/expo.icon",
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
@@ -39,6 +42,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2be67291-5f68-4645-a3fc-8a538f530ef2"
+      }
+    },
+    "owner": "ismaeliii83"
   }
 }
