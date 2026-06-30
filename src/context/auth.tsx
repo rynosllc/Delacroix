@@ -31,18 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function signUp(email: string, password: string, displayName: string) {
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { display_name: displayName } },
+    });
     if (error) return { error: error.message };
-
-    if (data.user) {
-      const { error: profileError } = await supabase.from('users').insert({
-        id: data.user.id,
-        email,
-        display_name: displayName,
-      });
-      if (profileError) return { error: profileError.message };
-    }
-
     return { error: null };
   }
 
