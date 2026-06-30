@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Maison Delacroix",
-    "slug": "Delacroix",
+    "name": "DeLacroix",
+    "slug": "delacroix",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",

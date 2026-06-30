@@ -31,7 +31,7 @@ export default function SignUpScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.inner}>
-        <Text style={styles.wordmark}>Maison Delacroix</Text>
+        <Text style={styles.wordmark}>DeLacroix</Text>
         <Text style={styles.tagline}>it's from the heart</Text>
 
         <View style={styles.form}>

@@ -69,7 +69,7 @@ export default function AddressBookScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.wordmark}>Maison Delacroix</Text>
+        <Text style={styles.wordmark}>DeLacroix</Text>
         <TouchableOpacity onPress={signOut}>
           <Text style={styles.signOutText}>Sign out</Text>
         </TouchableOpacity>
