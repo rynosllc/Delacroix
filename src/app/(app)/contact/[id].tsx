@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Modal, FlatList,
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
+
+const PREFIXES = ['', 'Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'];
+const SUFFIXES = ['', 'Jr.', 'Sr.', 'II', 'III', 'MD', 'PhD', 'Esq.'];
 
 export default function ContactScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -15,13 +19,19 @@ export default function ContactScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
-  const [displayName, setDisplayName] = useState('');
+  const [prefix, setPrefix] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [suffix, setSuffix] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [birthday, setBirthday] = useState('');
+  const [birthday, setBirthday] = useState<Date | null>(null);
   const [relation, setRelation] = useState('');
+
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
+  const [prefixOpen, setPrefixOpen] = useState(false);
+  const [suffixOpen, setSuffixOpen] = useState(false);
 
   useEffect(() => {
     if (isNew) return;
@@ -32,19 +42,35 @@ export default function ContactScreen() {
       .single()
       .then(({ data }) => {
         if (data) {
-          setDisplayName(data.display_name ?? '');
+          // Parse stored display_name back into parts on edit
+          const parts = (data.display_name ?? '').split(' ');
+          setFirstName(parts[0] ?? '');
+          setLastName(parts.slice(1).join(' ') ?? '');
           setEmail(data.email ?? '');
           setPhone(data.phone ?? '');
-          setBirthday(data.birthday ?? '');
           setRelation(data.relation ?? '');
+          if (data.birthday) setBirthday(new Date(data.birthday + 'T00:00:00'));
         }
         setLoading(false);
       });
   }, [id]);
 
+  function buildDisplayName() {
+    return [prefix, firstName.trim(), lastName.trim(), suffix]
+      .filter(Boolean)
+      .join(' ');
+  }
+
+  function birthdayToISO(date: Date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
   async function handleSave() {
-    if (!displayName.trim()) {
-      Alert.alert('Name required', 'Please enter a name for this contact.');
+    if (!firstName.trim() || !lastName.trim()) {
+      Alert.alert('Name required', 'Please enter both a first and last name.');
       return;
     }
     if (!email.trim() && !phone.trim()) {
@@ -55,10 +81,10 @@ export default function ContactScreen() {
     setSaving(true);
 
     const payload = {
-      display_name: displayName.trim(),
+      display_name: buildDisplayName(),
       email: email.trim() || null,
       phone: phone.trim() || null,
-      birthday: birthday.trim() || null,
+      birthday: birthday ? birthdayToISO(birthday) : null,
       relation: relation.trim() || null,
       owner_user_id: user!.id,
     };
@@ -68,24 +94,18 @@ export default function ContactScreen() {
       : await supabase.from('recipient_contacts').update(payload).eq('id', id);
 
     setSaving(false);
-
-    if (error) {
-      Alert.alert('Error', error.message);
-      return;
-    }
-
+    if (error) { Alert.alert('Error', error.message); return; }
     router.back();
   }
 
   async function handleDelete() {
     Alert.alert(
       'Remove contact',
-      `Remove ${displayName} from your address book? This won't affect gifts already sent.`,
+      `Remove ${buildDisplayName()} from your address book? This won't affect gifts already sent.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Remove',
-          style: 'destructive',
+          text: 'Remove', style: 'destructive',
           onPress: async () => {
             await supabase.from('recipient_contacts').delete().eq('id', id);
             router.back();
@@ -96,19 +116,13 @@ export default function ContactScreen() {
   }
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={Brand.gold} />
-      </View>
-    );
+    return <View style={styles.centered}><ActivityIndicator color={Brand.gold} /></View>;
   }
 
   return (
     <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
@@ -119,11 +133,82 @@ export default function ContactScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
-          <Field label="Name *" value={displayName} onChangeText={setDisplayName} placeholder="Full name" autoCapitalize="words" />
+
+          {/* Name section */}
+          <View style={styles.fieldWrapper}>
+            <Text style={styles.fieldLabel}>Name</Text>
+
+            {/* Prefix + Suffix row */}
+            <View style={styles.row}>
+              <DropdownPicker
+                value={prefix}
+                placeholder="Prefix"
+                options={PREFIXES}
+                isOpen={prefixOpen}
+                onOpen={() => { setPrefixOpen(true); setSuffixOpen(false); }}
+                onClose={() => setPrefixOpen(false)}
+                onSelect={v => { setPrefix(v); setPrefixOpen(false); }}
+                style={{ flex: 1 }}
+              />
+              <DropdownPicker
+                value={suffix}
+                placeholder="Suffix"
+                options={SUFFIXES}
+                isOpen={suffixOpen}
+                onOpen={() => { setSuffixOpen(true); setPrefixOpen(false); }}
+                onClose={() => setSuffixOpen(false)}
+                onSelect={v => { setSuffix(v); setSuffixOpen(false); }}
+                style={{ flex: 1 }}
+              />
+            </View>
+
+            {/* First / Last */}
+            <View style={styles.row}>
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="First name *"
+                placeholderTextColor={Brand.muted}
+                selectionColor={Brand.gold}
+                value={firstName}
+                onChangeText={setFirstName}
+                autoCapitalize="words"
+              />
+              <TextInput
+                style={[styles.input, { flex: 1 }]}
+                placeholder="Last name *"
+                placeholderTextColor={Brand.muted}
+                selectionColor={Brand.gold}
+                value={lastName}
+                onChangeText={setLastName}
+                autoCapitalize="words"
+              />
+            </View>
+          </View>
+
           <Field label="Email" value={email} onChangeText={setEmail} placeholder="their@email.com" keyboardType="email-address" autoCapitalize="none" />
           <Field label="Phone" value={phone} onChangeText={setPhone} placeholder="+1 (555) 000-0000" keyboardType="phone-pad" />
           <Field label="Relation" value={relation} onChangeText={setRelation} placeholder="mom, friend, coworker…" autoCapitalize="none" />
-          <Field label="Birthday" value={birthday} onChangeText={setBirthday} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" />
+
+          {/* Birthday */}
+          <View style={styles.fieldWrapper}>
+            <View style={styles.birthdayRow}>
+              <Text style={styles.fieldLabel}>Birthday</Text>
+              {birthday && (
+                <TouchableOpacity onPress={() => setBirthday(null)}>
+                  <Text style={styles.clearText}>Clear</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+            <DateTimePicker
+              value={birthday ?? new Date(2000, 0, 1)}
+              mode="date"
+              display="spinner"
+              onChange={(_e, date) => { if (date) setBirthday(date); }}
+              maximumDate={new Date()}
+              textColor={Brand.cream}
+              style={styles.datePicker}
+            />
+          </View>
 
           <TouchableOpacity
             style={[styles.saveButton, saving && styles.saveButtonDisabled]}
@@ -147,96 +232,106 @@ export default function ContactScreen() {
   );
 }
 
-function Field({ label, ...props }: { label: string } & React.ComponentProps<typeof TextInput>) {
+// ─── Dropdown picker ──────────────────────────────────────────────────────────
+
+interface DropdownProps {
+  value: string;
+  placeholder: string;
+  options: string[];
+  isOpen: boolean;
+  onOpen: () => void;
+  onClose: () => void;
+  onSelect: (v: string) => void;
+  style?: object;
+}
+
+function DropdownPicker({ value, placeholder, options, isOpen, onOpen, onClose, onSelect, style }: DropdownProps) {
   return (
-    <View style={styles.fieldWrapper}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        placeholderTextColor={Brand.muted}
-        selectionColor={Brand.gold}
-        {...props}
-      />
+    <View style={style}>
+      <TouchableOpacity style={styles.dropdownTrigger} onPress={onOpen}>
+        <Text style={value ? styles.dropdownValue : styles.dropdownPlaceholder}>
+          {value || placeholder}
+        </Text>
+        <Text style={styles.dropdownChevron}>▾</Text>
+      </TouchableOpacity>
+
+      <Modal visible={isOpen} transparent animationType="fade" onRequestClose={onClose}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={onClose}>
+          <View style={styles.modalSheet}>
+            <FlatList
+              data={options}
+              keyExtractor={item => item || '__none__'}
+              renderItem={({ item }) => (
+                <TouchableOpacity style={styles.optionRow} onPress={() => onSelect(item)}>
+                  <Text style={[styles.optionText, item === value && styles.optionSelected]}>
+                    {item || `No ${placeholder.toLowerCase()}`}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
 
+// ─── Simple text field ────────────────────────────────────────────────────────
+
+function Field({ label, ...props }: { label: string } & React.ComponentProps<typeof TextInput>) {
+  return (
+    <View style={styles.fieldWrapper}>
+      <Text style={styles.fieldLabel}>{label}</Text>
+      <TextInput style={styles.input} placeholderTextColor={Brand.muted} selectionColor={Brand.gold} {...props} />
+    </View>
+  );
+}
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Brand.green,
-  },
-  centered: {
-    flex: 1,
-    backgroundColor: Brand.green,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
+  container: { flex: 1, backgroundColor: Brand.green },
+  centered: { flex: 1, backgroundColor: Brand.green, alignItems: 'center', justifyContent: 'center' },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: Brand.greenBorder,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingVertical: 14,
+    borderBottomWidth: 1, borderBottomColor: Brand.greenBorder,
   },
-  headerBack: {
-    color: Brand.gold,
-    fontSize: 17,
-    width: 60,
-  },
-  headerTitle: {
-    color: Brand.cream,
-    fontSize: 17,
-    fontFamily: 'ui-serif',
-  },
-  form: {
-    padding: 24,
-    gap: 20,
-    paddingBottom: 60,
-  },
-  fieldWrapper: {
-    gap: 6,
-  },
-  fieldLabel: {
-    color: Brand.muted,
-    fontSize: 12,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
+  headerBack: { color: Brand.gold, fontSize: 17, width: 60 },
+  headerTitle: { color: Brand.cream, fontSize: 17, fontFamily: 'ui-serif' },
+  form: { padding: 24, gap: 20, paddingBottom: 60 },
+  fieldWrapper: { gap: 8 },
+  fieldLabel: { color: Brand.muted, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
+  row: { flexDirection: 'row', gap: 10 },
   input: {
-    backgroundColor: Brand.greenMid,
-    borderWidth: 1,
-    borderColor: Brand.greenBorder,
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    fontSize: 16,
-    color: Brand.cream,
+    backgroundColor: Brand.greenMid, borderWidth: 1, borderColor: Brand.greenBorder,
+    borderRadius: 10, paddingHorizontal: 16, paddingVertical: 13, fontSize: 16, color: Brand.cream,
   },
+  dropdownTrigger: {
+    backgroundColor: Brand.greenMid, borderWidth: 1, borderColor: Brand.greenBorder,
+    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+  },
+  dropdownValue: { color: Brand.cream, fontSize: 15 },
+  dropdownPlaceholder: { color: Brand.muted, fontSize: 15 },
+  dropdownChevron: { color: Brand.muted, fontSize: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: Brand.greenMid, borderTopLeftRadius: 16, borderTopRightRadius: 16,
+    paddingVertical: 8, maxHeight: 320,
+  },
+  optionRow: { paddingHorizontal: 24, paddingVertical: 14 },
+  optionText: { color: Brand.cream, fontSize: 17 },
+  optionSelected: { color: Brand.gold, fontWeight: '600' },
+  birthdayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  clearText: { color: Brand.gold, fontSize: 13 },
+  datePicker: { height: 160, marginTop: -8 },
   saveButton: {
-    backgroundColor: Brand.gold,
-    borderRadius: 10,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 8,
+    backgroundColor: Brand.gold, borderRadius: 10, paddingVertical: 15,
+    alignItems: 'center', marginTop: 8,
   },
-  saveButtonDisabled: {
-    opacity: 0.6,
-  },
-  saveButtonText: {
-    color: Brand.green,
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  deleteButton: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  deleteButtonText: {
-    color: '#C0392B',
-    fontSize: 15,
-  },
+  saveButtonDisabled: { opacity: 0.6 },
+  saveButtonText: { color: Brand.green, fontSize: 16, fontWeight: '600', letterSpacing: 0.5 },
+  deleteButton: { alignItems: 'center', paddingVertical: 12 },
+  deleteButtonText: { color: '#C0392B', fontSize: 15 },
 });
