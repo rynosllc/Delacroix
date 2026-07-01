@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
   ActivityIndicator, Alert, Modal, FlatList,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
@@ -25,7 +24,11 @@ export default function ContactScreen() {
   const [suffix, setSuffix] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [birthday, setBirthday] = useState<Date | null>(null);
+  const [bdMonth, setBdMonth] = useState('');
+  const [bdDay, setBdDay] = useState('');
+  const [bdYear, setBdYear] = useState('');
+  const dayRef = useRef<TextInput>(null);
+  const yearRef = useRef<TextInput>(null);
   const [relation, setRelation] = useState('');
 
   const [loading, setLoading] = useState(!isNew);
@@ -49,7 +52,10 @@ export default function ContactScreen() {
           setEmail(data.email ?? '');
           setPhone(data.phone ?? '');
           setRelation(data.relation ?? '');
-          if (data.birthday) setBirthday(new Date(data.birthday + 'T00:00:00'));
+          if (data.birthday) {
+            const [y, m, d] = data.birthday.split('-');
+            setBdYear(y ?? ''); setBdMonth(m ?? ''); setBdDay(d ?? '');
+          }
         }
         setLoading(false);
       });
@@ -61,10 +67,14 @@ export default function ContactScreen() {
       .join(' ');
   }
 
-  function birthdayToISO(date: Date) {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
+  function birthdayToISO(): string | null {
+    if (!bdMonth && !bdDay && !bdYear) return null;
+    const m = bdMonth.padStart(2, '0');
+    const d = bdDay.padStart(2, '0');
+    const y = bdYear;
+    if (y.length !== 4 || !m || !d) return null;
+    const date = new Date(`${y}-${m}-${d}T00:00:00`);
+    if (isNaN(date.getTime())) return null;
     return `${y}-${m}-${d}`;
   }
 
@@ -84,7 +94,7 @@ export default function ContactScreen() {
       display_name: buildDisplayName(),
       email: email.trim() || null,
       phone: phone.trim() || null,
-      birthday: birthday ? birthdayToISO(birthday) : null,
+      birthday: birthdayToISO(),
       relation: relation.trim() || null,
       owner_user_id: user!.id,
     };
@@ -192,22 +202,60 @@ export default function ContactScreen() {
           {/* Birthday */}
           <View style={styles.fieldWrapper}>
             <View style={styles.birthdayRow}>
-              <Text style={styles.fieldLabel}>Birthday</Text>
-              {birthday && (
-                <TouchableOpacity onPress={() => setBirthday(null)}>
+              <Text style={styles.fieldLabel}>Birthday (optional)</Text>
+              {(bdMonth || bdDay || bdYear) && (
+                <TouchableOpacity onPress={() => { setBdMonth(''); setBdDay(''); setBdYear(''); }}>
                   <Text style={styles.clearText}>Clear</Text>
                 </TouchableOpacity>
               )}
             </View>
-            <DateTimePicker
-              value={birthday ?? new Date(2000, 0, 1)}
-              mode="date"
-              display="spinner"
-              onChange={(_e, date) => { if (date) setBirthday(date); }}
-              maximumDate={new Date()}
-              textColor={Brand.cream}
-              style={styles.datePicker}
-            />
+            <View style={styles.birthdayInputs}>
+              <TextInput
+                style={[styles.input, styles.bdSegment]}
+                placeholder="MM"
+                placeholderTextColor={Brand.muted}
+                selectionColor={Brand.gold}
+                value={bdMonth}
+                onChangeText={v => {
+                  const n = v.replace(/\D/g, '').slice(0, 2);
+                  setBdMonth(n);
+                  if (n.length === 2) dayRef.current?.focus();
+                }}
+                keyboardType="number-pad"
+                maxLength={2}
+                returnKeyType="next"
+              />
+              <Text style={styles.bdSep}>/</Text>
+              <TextInput
+                ref={dayRef}
+                style={[styles.input, styles.bdSegment]}
+                placeholder="DD"
+                placeholderTextColor={Brand.muted}
+                selectionColor={Brand.gold}
+                value={bdDay}
+                onChangeText={v => {
+                  const n = v.replace(/\D/g, '').slice(0, 2);
+                  setBdDay(n);
+                  if (n.length === 2) yearRef.current?.focus();
+                }}
+                keyboardType="number-pad"
+                maxLength={2}
+                returnKeyType="next"
+              />
+              <Text style={styles.bdSep}>/</Text>
+              <TextInput
+                ref={yearRef}
+                style={[styles.input, styles.bdYear]}
+                placeholder="YYYY"
+                placeholderTextColor={Brand.muted}
+                selectionColor={Brand.gold}
+                value={bdYear}
+                onChangeText={v => setBdYear(v.replace(/\D/g, '').slice(0, 4))}
+                keyboardType="number-pad"
+                maxLength={4}
+                returnKeyType="done"
+              />
+            </View>
           </View>
 
           <TouchableOpacity
@@ -324,8 +372,11 @@ const styles = StyleSheet.create({
   optionText: { color: Brand.cream, fontSize: 17 },
   optionSelected: { color: Brand.gold, fontWeight: '600' },
   birthdayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  birthdayInputs: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  bdSegment: { width: 58, textAlign: 'center', paddingHorizontal: 8 },
+  bdYear: { width: 80, textAlign: 'center', paddingHorizontal: 8 },
+  bdSep: { color: Brand.muted, fontSize: 20, marginBottom: 2 },
   clearText: { color: Brand.gold, fontSize: 13 },
-  datePicker: { height: 160, marginTop: -8 },
   saveButton: {
     backgroundColor: Brand.gold, borderRadius: 10, paddingVertical: 15,
     alignItems: 'center', marginTop: 8,
