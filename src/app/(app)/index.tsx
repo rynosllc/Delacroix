@@ -42,16 +42,6 @@ export default function AddressBookScreen() {
     setRefreshing(false);
   }, []);
 
-  function daysUntilBirthday(birthday: string | null): number | null {
-    if (!birthday) return null;
-    const today = new Date();
-    const [, m, d] = birthday.split('-').map(Number);
-    let next = new Date(today.getFullYear(), m - 1, d);
-    if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
-    const diff = Math.ceil((next.getTime() - today.setHours(0, 0, 0, 0)) / 86400000);
-    return diff;
-  }
-
   function initials(name: string) {
     return name
       .split(' ')
@@ -129,6 +119,16 @@ export default function AddressBookScreen() {
       </TouchableOpacity>
     </SafeAreaView>
   );
+}
+
+function daysUntilBirthday(birthday: string | null): number | null {
+  if (!birthday) return null;
+  const today = new Date();
+  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const [, m, d] = birthday.split('-').map(Number);
+  let next = new Date(today.getFullYear(), m - 1, d);
+  if (next < todayMidnight) next = new Date(today.getFullYear() + 1, m - 1, d);
+  return Math.ceil((next.getTime() - todayMidnight.getTime()) / 86400000);
 }
 
 function ContactSubline({ contact }: { contact: Contact }) {
