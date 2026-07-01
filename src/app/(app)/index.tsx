@@ -93,7 +93,7 @@ export default function AddressBookScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.contactRow}
-            onPress={() => router.push(`/(app)/contact/${item.id}`)}
+            onPress={() => router.push(`/(app)/profile/${item.id}`)}
             activeOpacity={0.7}
           >
             <View style={styles.avatar}>
