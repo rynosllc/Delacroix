@@ -42,10 +42,14 @@ export default function AddressBookScreen() {
     setRefreshing(false);
   }, []);
 
-  function birthdayLabel(birthday: string | null) {
+  function daysUntilBirthday(birthday: string | null): number | null {
     if (!birthday) return null;
-    const date = new Date(birthday + 'T00:00:00');
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const today = new Date();
+    const [, m, d] = birthday.split('-').map(Number);
+    let next = new Date(today.getFullYear(), m - 1, d);
+    if (next < today) next = new Date(today.getFullYear() + 1, m - 1, d);
+    const diff = Math.ceil((next.getTime() - today.setHours(0, 0, 0, 0)) / 86400000);
+    return diff;
   }
 
   function initials(name: string) {
@@ -107,13 +111,7 @@ export default function AddressBookScreen() {
             </View>
             <View style={styles.contactInfo}>
               <Text style={styles.contactName}>{item.display_name}</Text>
-              <Text style={styles.contactSub}>
-                {item.relation
-                  ? `${item.relation}${birthdayLabel(item.birthday) ? ` · 🎂 ${birthdayLabel(item.birthday)}` : ''}`
-                  : birthdayLabel(item.birthday)
-                    ? `🎂 ${birthdayLabel(item.birthday)}`
-                    : item.email ?? item.phone ?? ''}
-              </Text>
+              <ContactSubline contact={item} />
             </View>
             <Text style={styles.chevron}>›</Text>
           </TouchableOpacity>
@@ -132,6 +130,32 @@ export default function AddressBookScreen() {
     </SafeAreaView>
   );
 }
+
+function ContactSubline({ contact }: { contact: Contact }) {
+  const days = daysUntilBirthday(contact.birthday);
+  const upcomingBirthday = days !== null && days <= 30;
+
+  const base = contact.relation ?? contact.email ?? contact.phone ?? '';
+
+  if (upcomingBirthday) {
+    const countdown = days === 0 ? 'Today!' : `${days}d`;
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        {base ? <Text style={sublineStyles.muted}>{base}</Text> : null}
+        {base ? <Text style={sublineStyles.dot}>·</Text> : null}
+        <Text style={sublineStyles.birthday}>{countdown}</Text>
+      </View>
+    );
+  }
+
+  return <Text style={sublineStyles.muted}>{base}</Text>;
+}
+
+const sublineStyles = StyleSheet.create({
+  muted: { color: Brand.muted, fontSize: 13 },
+  dot: { color: Brand.muted, fontSize: 13 },
+  birthday: { color: Brand.gold, fontSize: 13, fontWeight: '600' },
+});
 
 const styles = StyleSheet.create({
   container: {

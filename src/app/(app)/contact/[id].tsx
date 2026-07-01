@@ -24,6 +24,7 @@ export default function ContactScreen() {
   const [suffix, setSuffix] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneDisplay, setPhoneDisplay] = useState('');
   const [bdMonth, setBdMonth] = useState('');
   const [bdDay, setBdDay] = useState('');
   const [bdYear, setBdYear] = useState('');
@@ -50,7 +51,9 @@ export default function ContactScreen() {
           setFirstName(parts[0] ?? '');
           setLastName(parts.slice(1).join(' ') ?? '');
           setEmail(data.email ?? '');
-          setPhone(data.phone ?? '');
+          const rawPhone = data.phone ?? '';
+          setPhone(rawPhone);
+          setPhoneDisplay(formatPhone(rawPhone));
           setRelation(data.relation ?? '');
           if (data.birthday) {
             const [y, m, d] = data.birthday.split('-');
@@ -60,6 +63,19 @@ export default function ContactScreen() {
         setLoading(false);
       });
   }, [id]);
+
+  function formatPhone(raw: string): string {
+    const digits = raw.replace(/\D/g, '').slice(0, 10);
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+  }
+
+  function handlePhoneChange(text: string) {
+    const digits = text.replace(/\D/g, '').slice(0, 10);
+    setPhone(digits);
+    setPhoneDisplay(formatPhone(digits));
+  }
 
   function buildDisplayName() {
     return [prefix, firstName.trim(), lastName.trim(), suffix]
@@ -196,13 +212,13 @@ export default function ContactScreen() {
           </View>
 
           <Field label="Email" value={email} onChangeText={setEmail} placeholder="their@email.com" keyboardType="email-address" autoCapitalize="none" />
-          <Field label="Phone" value={phone} onChangeText={setPhone} placeholder="+1 (555) 000-0000" keyboardType="phone-pad" />
+          <Field label="Phone" value={phoneDisplay} onChangeText={handlePhoneChange} placeholder="(555) 000-0000" keyboardType="phone-pad" />
           <Field label="Relation" value={relation} onChangeText={setRelation} placeholder="mom, friend, coworker…" autoCapitalize="none" />
 
           {/* Birthday */}
           <View style={styles.fieldWrapper}>
             <View style={styles.birthdayRow}>
-              <Text style={styles.fieldLabel}>Birthday (optional)</Text>
+              <Text style={styles.fieldLabel}>Birthday</Text>
               {(bdMonth || bdDay || bdYear) && (
                 <TouchableOpacity onPress={() => { setBdMonth(''); setBdDay(''); setBdYear(''); }}>
                   <Text style={styles.clearText}>Clear</Text>
