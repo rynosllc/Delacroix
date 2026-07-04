@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "DeLacroix",
-    "slug": "delacroix",
+    "slug": "Delacroix",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -54,8 +54,7 @@
           "savePhotosPermission": "DeLacroix saves screenshots to your photo library.",
           "isAccessMediaLocationEnabled": false
         }
-      ],
-      "react-native-view-shot"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
