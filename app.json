@@ -40,7 +40,22 @@
           }
         }
       ],
-      "@react-native-community/datetimepicker"
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "DeLacroix uses your photo library to add photos to contacts.",
+          "cameraPermission": "DeLacroix uses your camera to take photos for contacts."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "DeLacroix saves screenshots to your photo library.",
+          "savePhotosPermission": "DeLacroix saves screenshots to your photo library.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "react-native-view-shot"
     ],
     "experiments": {
       "typedRoutes": true,

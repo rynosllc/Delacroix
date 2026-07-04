@@ -2,13 +2,15 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
   ScrollView, ActivityIndicator, Alert, Linking, Image,
-  FlatList, Dimensions, Modal,
+  Dimensions, Modal,
 } from 'react-native';
+import ViewShot from 'react-native-view-shot';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
+import { useScreenshot } from '@/hooks/use-screenshot';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PHOTO_SIZE = Math.floor((SCREEN_WIDTH - 40 - 8) / 3);
@@ -27,6 +29,7 @@ export default function ContactProfileScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
+  const { ref: shotRef, capture, saving: capturingSave } = useScreenshot();
   const [contact, setContact] = useState<Contact | null>(null);
   const [photos, setPhotos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,11 +152,19 @@ export default function ContactProfileScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.headerBack}>‹ Back</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push(`/(app)/contact/${id}`)}>
-          <Text style={styles.headerEdit}>Edit</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRight}>
+          <TouchableOpacity onPress={capture} disabled={capturingSave} style={styles.saveBtn}>
+            {capturingSave
+              ? <ActivityIndicator color={Brand.gold} size="small" />
+              : <Text style={styles.saveBtnText}>⬇</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push(`/(app)/contact/${id}`)}>
+            <Text style={styles.headerEdit}>Edit</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
+      <ViewShot ref={shotRef} options={{ format: 'jpg', quality: 0.95 }} style={{ flex: 1 }}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Name & relation */}
         <View style={styles.nameBlock}>
@@ -241,6 +252,7 @@ export default function ContactProfileScreen() {
           <Text style={styles.giftButtonText}>Send a Gift</Text>
         </TouchableOpacity>
       </ScrollView>
+      </ViewShot>
 
       {/* Fullscreen photo viewer */}
       <Modal visible={!!fullscreenPhoto} transparent animationType="fade" onRequestClose={() => setFullscreenPhoto(null)}>
@@ -263,6 +275,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: Brand.greenBorder,
   },
   headerBack: { color: Brand.gold, fontSize: 17 },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  saveBtn: { width: 28, alignItems: 'center' },
+  saveBtnText: { color: Brand.muted, fontSize: 16 },
   headerEdit: { color: Brand.gold, fontSize: 17 },
   scroll: { padding: 20, gap: 16, paddingBottom: 60 },
   nameBlock: { gap: 4, paddingBottom: 4 },
