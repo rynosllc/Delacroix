@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  SafeAreaView, KeyboardAvoidingView, Platform, ScrollView,
-  ActivityIndicator, Alert, Modal, FlatList,
+  KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, Alert, Modal, FlatList, ImageBackground,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomNavBar } from '@/components/BottomNavBar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
@@ -32,6 +34,7 @@ export default function ContactScreen() {
   const yearRef = useRef<TextInput>(null);
   const [relation, setRelation] = useState('');
 
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [prefixOpen, setPrefixOpen] = useState(false);
@@ -141,13 +144,23 @@ export default function ContactScreen() {
     );
   }
 
+  const bg = require('../../../../assets/background.png');
+
   if (loading) {
-    return <View style={styles.centered}><ActivityIndicator color={Brand.gold} /></View>;
+    return (
+      <ImageBackground source={bg} style={{ flex: 1 }} resizeMode="cover">
+        <View style={styles.centered}><ActivityIndicator color={Brand.gold} /></View>
+      </ImageBackground>
+    );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <ImageBackground source={bg} style={{ flex: 1 }} resizeMode="cover">
+    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      style={[styles.container, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
 
         {/* Header */}
         <View style={styles.header}>
@@ -291,8 +304,10 @@ export default function ContactScreen() {
             </TouchableOpacity>
           )}
         </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    </KeyboardAvoidingView>
+    <BottomNavBar />
+    </View>
+    </ImageBackground>
   );
 }
 
@@ -354,8 +369,8 @@ function Field({ label, ...props }: { label: string } & React.ComponentProps<typ
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Brand.green },
-  centered: { flex: 1, backgroundColor: Brand.green, alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingVertical: 14,

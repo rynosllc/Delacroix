@@ -1,9 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ScrollView, ActivityIndicator, Alert, Linking, Image,
-  Dimensions, Modal,
+  View, Text, TouchableOpacity, StyleSheet,
+  ScrollView, ActivityIndicator, Linking, ImageBackground,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BottomNavBar } from '@/components/BottomNavBar';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
@@ -25,6 +26,7 @@ export default function ContactProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [contact, setContact] = useState<Contact | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,15 +58,23 @@ export default function ContactProfileScreen() {
     return { label: `Turning ${age} on ${month} ${d}`, days };
   }
 
+  const bg = require('../../../../assets/background.png');
+
   if (loading || !contact) {
-    return <View style={styles.centered}><ActivityIndicator color={Brand.gold} /></View>;
+    return (
+      <ImageBackground source={bg} style={{ flex: 1 }} resizeMode="cover">
+        <View style={styles.centered}><ActivityIndicator color={Brand.gold} /></View>
+      </ImageBackground>
+    );
   }
 
   const bd = birthdayInfo(contact.birthday);
   const upcomingBirthday = bd && bd.days !== null && bd.days <= 30;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <ImageBackground source={bg} style={{ flex: 1 }} resizeMode="cover">
+    <View style={{ flex: 1 }}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -131,21 +141,30 @@ export default function ContactProfileScreen() {
         </View>
 
         {/* Send Gift */}
+        {/* REPLACE WITH CUSTOM ASSET LATER */}
         <TouchableOpacity
           style={styles.giftButton}
-          onPress={() => router.push('/(app)/gift-coming-soon')}
+          onPress={() =>
+            router.push({
+              pathname: '/send/recipient',
+              params: { prefilledId: id, prefilledName: contact.display_name },
+            })
+          }
           activeOpacity={0.85}
         >
           <Text style={styles.giftButtonText}>Send a Gift</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </View>
+    <BottomNavBar />
+    </View>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Brand.green },
-  centered: { flex: 1, backgroundColor: Brand.green, alignItems: 'center', justifyContent: 'center' },
+  container: { flex: 1 },
+  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 14,

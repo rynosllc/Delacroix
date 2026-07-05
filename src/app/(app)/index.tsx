@@ -1,285 +1,166 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, RefreshControl,
+  View, Text, TouchableOpacity, StyleSheet,
+  SafeAreaView, ScrollView, ActivityIndicator, ImageBackground,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
 
-interface Contact {
-  id: string;
-  display_name: string;
-  email: string | null;
-  phone: string | null;
-  birthday: string | null;
-  relation: string | null;
+const BG = require('../../../assets/background.png');
+
+const HUB_BUTTONS = [
+  { label: 'YOUR PEOPLE', icon: '👥', route: '/people'          },
+  { label: 'SEND A GIFT', icon: '🎁', route: '/send/recipient'  },
+  { label: 'YOUR GIFTS',  icon: '📋', route: '/gifts'           },
+  { label: 'YOU',         icon: '👤', route: '/profile'         },
+] as const;
+
+interface UpcomingContact { id: string; display_name: string; days: number }
+
+function daysUntilBirthday(birthday: string): number {
+  const today = new Date();
+  const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const [, m, d] = birthday.split('-').map(Number);
+  let next = new Date(today.getFullYear(), m - 1, d);
+  if (next < todayMid) next = new Date(today.getFullYear() + 1, m - 1, d);
+  return Math.ceil((next.getTime() - todayMid.getTime()) / 86400000);
 }
 
-export default function AddressBookScreen() {
-  const { signOut } = useAuth();
+export default function HomeScreen() {
   const router = useRouter();
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function fetchContacts() {
-    const { data } = await supabase
-      .from('recipient_contacts')
-      .select('id, display_name, email, phone, birthday, relation')
-      .order('display_name', { ascending: true });
-    setContacts(data ?? []);
-  }
+  const [upcoming, setUpcoming]       = useState<UpcomingContact | null>(null);
+  const [momentLoading, setMomentLoading] = useState(true);
+  const [hasContacts, setHasContacts] = useState(true);
 
   useEffect(() => {
-    fetchContacts().finally(() => setLoading(false));
+    supabase
+      .from('recipient_contacts')
+      .select('id, display_name, birthday')
+      .not('birthday', 'is', null)
+      .then(({ data }) => {
+        if (!data || data.length === 0) {
+          setHasContacts(false);
+          setMomentLoading(false);
+          return;
+        }
+        let soonest: UpcomingContact | null = null;
+        for (const c of data) {
+          if (!c.birthday) continue;
+          const days = daysUntilBirthday(c.birthday);
+          if (days <= 30 && (!soonest || days < soonest.days)) {
+            soonest = { id: c.id, display_name: c.display_name, days };
+          }
+        }
+        setUpcoming(soonest);
+        setMomentLoading(false);
+      });
   }, []);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchContacts();
-    setRefreshing(false);
-  }, []);
-
-  function initials(name: string) {
-    return name
-      .split(' ')
-      .slice(0, 2)
-      .map(w => w[0])
-      .join('')
-      .toUpperCase();
-  }
-
-  if (loading) {
-    return (
-      <View style={styles.centered}>
-        <ActivityIndicator color={Brand.gold} />
-      </View>
-    );
-  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.wordmark}>DeLacroix</Text>
-        <TouchableOpacity onPress={signOut}>
-          <Text style={styles.signOutText}>Sign out</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.sectionTitle}>Your People</Text>
-
-      <FlatList
-        data={contacts}
-        keyExtractor={item => item.id}
-        contentContainerStyle={contacts.length === 0 ? styles.emptyContainer : styles.listContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Brand.gold}
-          />
-        }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>No contacts yet</Text>
-            <Text style={styles.emptySubtitle}>
-              Add someone to start sending gifts that feel like they're from the heart.
-            </Text>
+    <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
+      <SafeAreaView style={styles.safe}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* ── Contextual moment card ── */}
+          <View style={styles.momentCard}>
+            {momentLoading ? (
+              <ActivityIndicator color={Brand.gold} size="small" />
+            ) : upcoming ? (
+              <View style={styles.momentRow}>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={styles.momentEyebrow}>YOUR MOMENT</Text>
+                  <Text style={styles.momentText}>
+                    {upcoming.display_name}'s birthday is in{' '}
+                    <Text style={styles.momentGold}>
+                      {upcoming.days === 0 ? 'today 🎂' : `${upcoming.days}d`}
+                    </Text>
+                  </Text>
+                </View>
+                {/* REPLACE WITH CUSTOM ASSET LATER */}
+                <TouchableOpacity
+                  style={styles.momentBtn}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/send/recipient',
+                      params: { prefilledId: upcoming.id, prefilledName: upcoming.display_name },
+                    })
+                  }
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.momentBtnText}>Send Gift</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.momentEmpty}>
+                Add someone to Your People to never miss a moment
+              </Text>
+            )}
           </View>
-        }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.contactRow}
-            onPress={() => router.push(`/(app)/profile/${item.id}`)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials(item.display_name)}</Text>
-            </View>
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactName}>{item.display_name}</Text>
-              <ContactSubline contact={item} />
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-        )}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-      />
 
-      {/* FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/(app)/contact/new')}
-        activeOpacity={0.85}
-      >
-        <Text style={styles.fabText}>＋</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+          {/* ── Wordmark ── */}
+          <View style={styles.wordmarkBlock}>
+            <Text style={styles.wordmark}>DeLacroix</Text>
+            <Text style={styles.tagline}>it's from the heart</Text>
+            <View style={styles.divider} />
+          </View>
+
+          {/* ── 2×2 hub grid ── */}
+          <View style={styles.grid}>
+            {HUB_BUTTONS.map(btn => (
+              // REPLACE WITH CUSTOM ASSET LATER
+              <TouchableOpacity
+                key={btn.route}
+                style={styles.hubBtn}
+                onPress={() => router.push(btn.route as string)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.hubIcon}>{btn.icon}</Text>
+                <Text style={styles.hubLabel}>{btn.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </ImageBackground>
   );
 }
 
-function daysUntilBirthday(birthday: string | null): number | null {
-  if (!birthday) return null;
-  const today = new Date();
-  const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const [, m, d] = birthday.split('-').map(Number);
-  let next = new Date(today.getFullYear(), m - 1, d);
-  if (next < todayMidnight) next = new Date(today.getFullYear() + 1, m - 1, d);
-  return Math.ceil((next.getTime() - todayMidnight.getTime()) / 86400000);
-}
-
-function ContactSubline({ contact }: { contact: Contact }) {
-  const days = daysUntilBirthday(contact.birthday);
-  const upcomingBirthday = days !== null && days <= 30;
-
-  const base = contact.relation ?? contact.email ?? contact.phone ?? '';
-
-  if (upcomingBirthday) {
-    const countdown = days === 0 ? 'Today!' : `${days}d`;
-    return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-        {base ? <Text style={sublineStyles.muted}>{base}</Text> : null}
-        {base ? <Text style={sublineStyles.dot}>·</Text> : null}
-        <Text style={sublineStyles.birthday}>{countdown}</Text>
-      </View>
-    );
-  }
-
-  return <Text style={sublineStyles.muted}>{base}</Text>;
-}
-
-const sublineStyles = StyleSheet.create({
-  muted: { color: Brand.muted, fontSize: 13 },
-  dot: { color: Brand.muted, fontSize: 13 },
-  birthday: { color: Brand.gold, fontSize: 13, fontWeight: '600' },
-});
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Brand.green,
+  safe:   { flex: 1 },
+  scroll: { padding: 20, paddingTop: 8, gap: 24, paddingBottom: 48 },
+
+  momentCard: {
+    backgroundColor: 'rgba(28, 43, 30, 0.78)',
+    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: 14, padding: 16, minHeight: 62, justifyContent: 'center',
   },
-  centered: {
-    flex: 1,
-    backgroundColor: Brand.green,
-    alignItems: 'center',
-    justifyContent: 'center',
+  momentRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  momentEyebrow:  { color: 'rgba(212,175,55,0.55)', fontSize: 10, letterSpacing: 1.5 },
+  momentText:     { color: Brand.cream, fontSize: 15, lineHeight: 21 },
+  momentGold:     { color: Brand.gold, fontWeight: '700' },
+  momentEmpty:    { color: Brand.muted, fontSize: 13, textAlign: 'center', fontStyle: 'italic' },
+  momentBtn:      { backgroundColor: '#D4AF37', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
+  momentBtnText:  { color: '#1B3A2B', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
+
+  wordmarkBlock: { alignItems: 'center', gap: 8 },
+  wordmark:      { fontFamily: 'ui-serif', fontSize: 38, color: Brand.gold, letterSpacing: 3 },
+  tagline:       { color: 'rgba(212,175,55,0.65)', fontSize: 13, fontStyle: 'italic', letterSpacing: 1 },
+  divider:       { width: 48, height: 1, backgroundColor: 'rgba(212,175,55,0.4)', marginTop: 4 },
+
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  hubBtn: {
+    width: '47.5%', height: 140,
+    backgroundColor: 'rgba(212, 175, 55, 0.10)',
+    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.35)',
+    borderRadius: 16,
+    alignItems: 'center', justifyContent: 'center', gap: 10,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 4,
-  },
-  wordmark: {
-    fontFamily: 'ui-serif',
-    fontSize: 20,
-    color: Brand.gold,
-    letterSpacing: 1.5,
-  },
-  signOutText: {
-    color: Brand.muted,
-    fontSize: 13,
-  },
-  sectionTitle: {
-    color: Brand.muted,
-    fontSize: 12,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
-  },
-  listContent: {
-    paddingBottom: 100,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  empty: {
-    alignItems: 'center',
-    paddingHorizontal: 40,
-    gap: 12,
-  },
-  emptyTitle: {
-    color: Brand.cream,
-    fontSize: 18,
-    fontFamily: 'ui-serif',
-  },
-  emptySubtitle: {
-    color: Brand.muted,
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  contactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    gap: 14,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Brand.greenMid,
-    borderWidth: 1,
-    borderColor: Brand.greenBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    color: Brand.gold,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  contactInfo: {
-    flex: 1,
-    gap: 3,
-  },
-  contactName: {
-    color: Brand.cream,
-    fontSize: 16,
-  },
-  contactSub: {
-    color: Brand.muted,
-    fontSize: 13,
-  },
-  chevron: {
-    color: Brand.greenBorder,
-    fontSize: 22,
-  },
-  separator: {
-    height: 1,
-    backgroundColor: Brand.greenBorder,
-    marginLeft: 78,
-    opacity: 0.4,
-  },
-  fab: {
-    position: 'absolute',
-    bottom: 36,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Brand.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  fabText: {
-    color: Brand.green,
-    fontSize: 28,
-    lineHeight: 32,
+  hubIcon:  { fontSize: 34 },
+  hubLabel: {
+    color: Brand.gold, fontSize: 11, fontWeight: '700',
+    letterSpacing: 1.5, fontFamily: 'ui-serif',
   },
 });

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  ImageBackground,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { useAuth } from '@/context/auth';
@@ -21,8 +22,13 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
+    <ImageBackground
+      source={require('../../../assets/background.png')}
       style={styles.container}
+      resizeMode="cover"
+    >
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <View style={styles.inner}>
@@ -71,13 +77,13 @@ export default function LoginScreen() {
         </Link>
       </View>
     </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1C2B1E',
   },
   inner: {
     flex: 1,
