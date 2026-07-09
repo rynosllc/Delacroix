@@ -11,6 +11,10 @@ function RootNavigator() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    // Recipient claim pages are public — no account required
+    const inClaimRoute = segments[0] === 'claim';
+
+    if (inClaimRoute) return;
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/login');
