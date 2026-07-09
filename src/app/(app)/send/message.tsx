@@ -37,9 +37,11 @@ export default function MessageStep() {
 
   function onNext() {
     const finalMsg = message.trim() || generated.trim();
+    const messageSource =
+      generated && finalMsg === generated.trim() ? 'ai_generated' : 'manual';
     router.push({
       pathname: '/send/photo',
-      params: { ...params, message: finalMsg },
+      params: { ...params, message: finalMsg, messageSource },
     });
   }
 

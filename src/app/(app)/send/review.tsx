@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ImageBackground, ScrollView,
+  ImageBackground, ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 
@@ -15,21 +18,61 @@ const OCCASION_LABELS: Record<string, string> = {
   just_because: 'Just Because',
 };
 
+function calcFee(amount: number): number {
+  return Math.ceil((amount * 0.029 + 0.30) * 100) / 100;
+}
+
 export default function ReviewStep() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     recipientId: string; recipientName: string; occasion: string;
-    message: string; photoUri: string; giftAmount: string;
+    message: string; messageSource: string; photoUri: string; giftAmount: string;
   }>();
+  const [sending, setSending] = useState(false);
 
   const hasPhoto  = !!params.photoUri;
-  const hasGift   = !!params.giftAmount && parseFloat(params.giftAmount) >= 5;
+  const amount    = parseFloat(params.giftAmount) || 0;
+  const hasGift   = amount >= 5;
   const msgPreview = params.message?.length > 80
     ? params.message.slice(0, 80) + '…'
     : params.message;
 
   function editStep(pathname: string) {
     router.push({ pathname: pathname as any, params });
+  }
+
+  async function handleSend() {
+    if (!user) return;
+    if (!params.recipientId || !params.occasion || !params.message) {
+      Alert.alert('Missing details', 'Please complete all steps before sending.');
+      return;
+    }
+    setSending(true);
+
+    // Payment (Stripe) is wired in a later phase — cash_amount is
+    // recorded on the row but nothing is charged yet.
+    const { error } = await supabase.from('gifts').insert({
+      sender_id: user.id,
+      recipient_contact_id: params.recipientId,
+      template_id: params.occasion,
+      message_text: params.message,
+      message_source: params.messageSource === 'ai_generated' ? 'ai_generated' : 'manual',
+      cash_amount: hasGift ? amount : null,
+      fee_amount: hasGift ? calcFee(amount) : null,
+      status: 'scheduled',
+      scheduled_send_at: new Date().toISOString(),
+    });
+
+    setSending(false);
+    if (error) {
+      Alert.alert('Could not send gift', error.message);
+      return;
+    }
+    router.replace({
+      pathname: '/send/success',
+      params: { recipientName: params.recipientName },
+    });
   }
 
   return (
@@ -73,21 +116,22 @@ export default function ReviewStep() {
             <View style={styles.rowSep} />
             <SummaryRow
               label="GIFT"
-              value={hasGift ? `$${parseFloat(params.giftAmount).toFixed(2)}` : 'No cash gift'}
+              value={hasGift ? `$${amount.toFixed(2)}` : 'No cash gift'}
               onEdit={() => editStep('/send/gift')}
             />
           </View>
 
           {/* REPLACE WITH CUSTOM ASSET LATER */}
           <TouchableOpacity
-            style={styles.sendBtn}
-            onPress={() => {
-              // Not connected to Stripe yet — placeholder
-              router.push('/');
-            }}
+            style={[styles.sendBtn, sending && styles.sendBtnDisabled]}
+            onPress={handleSend}
+            disabled={sending}
             activeOpacity={0.85}
           >
-            <Text style={styles.sendBtnText}>Send with Love ♥</Text>
+            {sending
+              ? <ActivityIndicator color="#1B3A2B" />
+              : <Text style={styles.sendBtnText}>Send with Love ♥</Text>
+            }
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
@@ -133,5 +177,6 @@ const styles = StyleSheet.create({
     height: 56, backgroundColor: '#D4AF37',
     borderRadius: 12, alignItems: 'center', justifyContent: 'center',
   },
+  sendBtnDisabled: { opacity: 0.6 },
   sendBtnText: { color: '#1B3A2B', fontSize: 17, fontWeight: '700', letterSpacing: 1.5 },
 });

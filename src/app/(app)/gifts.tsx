@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ImageBackground,
+  FlatList, ActivityIndicator, RefreshControl,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
 import { BottomNavBar } from '@/components/BottomNavBar';
 
@@ -17,10 +20,60 @@ const EMPTY_STATES: Record<Tab, { icon: string; text: string }> = {
   SCHEDULED: { icon: '📅', text: 'Your scheduled gifts will appear here' },
 };
 
+const OCCASION_LABELS: Record<string, string> = {
+  birthday:     'Birthday',
+  anniversary:  'Anniversary',
+  thank_you:    'Thank You',
+  just_because: 'Just Because',
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  scheduled: '#C9A84C',
+  sent:      '#7FB27F',
+  claimed:   '#5FA85F',
+  declined:  '#C0392B',
+  expired:   '#9A8C7A',
+};
+
+interface SentGift {
+  id: string;
+  template_id: string;
+  cash_amount: number | null;
+  status: string;
+  created_at: string;
+  recipient_contacts: { display_name: string } | null;
+}
+
 export default function GiftsScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<Tab>('SENT');
+  const [sentGifts, setSentGifts] = useState<SentGift[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function fetchSentGifts() {
+    const { data } = await supabase
+      .from('gifts')
+      .select('id, template_id, cash_amount, status, created_at, recipient_contacts(display_name)')
+      .order('created_at', { ascending: false });
+    setSentGifts((data as unknown as SentGift[]) ?? []);
+  }
+
+  // Refetch every time the screen gains focus so a just-sent gift shows up
+  useFocusEffect(
+    useCallback(() => {
+      fetchSentGifts().finally(() => setLoading(false));
+    }, [])
+  );
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchSentGifts();
+    setRefreshing(false);
+  }, []);
+
   const { icon, text } = EMPTY_STATES[activeTab];
+  const showList = activeTab === 'SENT' && sentGifts.length > 0;
 
   return (
     <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
@@ -48,11 +101,44 @@ export default function GiftsScreen() {
             ))}
           </View>
 
-          {/* Empty state */}
-          <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>{icon}</Text>
-            <Text style={styles.emptyText}>{text}</Text>
-          </View>
+          {activeTab === 'SENT' && loading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator color={Brand.gold} />
+            </View>
+          ) : showList ? (
+            <FlatList
+              data={sentGifts}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.list}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Brand.gold} />
+              }
+              renderItem={({ item }) => (
+                <View style={styles.giftCard}>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={styles.giftRecipient}>
+                      {item.recipient_contacts?.display_name ?? 'Unknown recipient'}
+                    </Text>
+                    <Text style={styles.giftMeta}>
+                      {OCCASION_LABELS[item.template_id] ?? item.template_id}
+                      {item.cash_amount ? `  ·  $${Number(item.cash_amount).toFixed(2)}` : ''}
+                    </Text>
+                  </View>
+                  <View style={[styles.badge, { borderColor: STATUS_COLORS[item.status] ?? Brand.muted }]}>
+                    <Text style={[styles.badgeText, { color: STATUS_COLORS[item.status] ?? Brand.muted }]}>
+                      {item.status.toUpperCase()}
+                    </Text>
+                  </View>
+                </View>
+              )}
+              ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
+            />
+          ) : (
+            <View style={styles.empty}>
+              <Text style={styles.emptyIcon}>{icon}</Text>
+              <Text style={styles.emptyText}>{text}</Text>
+            </View>
+          )}
 
         </View>
         <BottomNavBar />
@@ -78,6 +164,21 @@ const styles = StyleSheet.create({
     position: 'absolute', bottom: 0, left: '15%', right: '15%',
     height: 2, backgroundColor: Brand.gold, borderRadius: 1,
   },
+
+  list: { padding: 20, paddingTop: 12, paddingBottom: 40 },
+  giftCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(36, 51, 39, 0.85)',
+    borderWidth: 1, borderColor: Brand.greenBorder,
+    borderRadius: 12, padding: 16,
+  },
+  giftRecipient: { color: Brand.cream, fontSize: 16 },
+  giftMeta:      { color: Brand.muted, fontSize: 13 },
+  badge: {
+    borderWidth: 1, borderRadius: 20,
+    paddingHorizontal: 10, paddingVertical: 4,
+  },
+  badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
 
   empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 40 },
   emptyIcon:  { fontSize: 44, opacity: 0.45 },
