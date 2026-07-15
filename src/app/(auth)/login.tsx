@@ -2,15 +2,26 @@ import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-  ImageBackground,
+  ImageBackground, ScrollView,
 } from 'react-native';
 import { Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/auth';
+import { GoldGradient } from '@/components/GoldGradient';
+
+const BG = require('../../../assets/background.png');
+
+const GOLD       = '#D4AF37';
+const GOLD_SOFT  = 'rgba(212, 175, 55, 0.65)';
+const GOLD_FAINT = 'rgba(212, 175, 55, 0.4)';
+const DARK_GREEN = '#1B3A2B';
+const INPUT_FILL = 'rgba(10, 20, 10, 0.6)';
 
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function handleSignIn() {
@@ -22,129 +33,216 @@ export default function LoginScreen() {
   }
 
   return (
-    <ImageBackground
-      source={require('../../../assets/background.png')}
-      style={styles.container}
-      resizeMode="cover"
-    >
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.inner}>
-        <Text style={styles.wordmark}>DeLacroix</Text>
-        <Text style={styles.tagline}>it's from the heart</Text>
+    <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Monogram — swap for assets/logo-monogram.png when the file exists:
+              <Image source={require('../../../assets/logo-monogram.png')}
+                     style={styles.monogramImage} resizeMode="contain" />
+              REPLACE WITH CUSTOM ASSET LATER */}
+          <View style={styles.monogram}>
+            <Text style={styles.monogramD}>D</Text>
+            <Text style={styles.monogramHeart}>♥</Text>
+          </View>
 
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#9A8C7A"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            placeholderTextColor="#9A8C7A"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="current-password"
-          />
+          {/* Wordmark with divider + heart */}
+          <Text style={styles.wordmark}>DeLacroix</Text>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerHeart}>♥</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
+          {/* WELCOME with diamond divider */}
+          <Text style={styles.welcome}>WELCOME</Text>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLineShort} />
+            <Text style={styles.dividerDiamond}>◆</Text>
+            <View style={styles.dividerLineShort} />
+          </View>
+
+          <Text style={styles.tagline}>It's from the heart.</Text>
+
+          {/* Email */}
+          <View style={styles.inputWrap}>
+            <Ionicons name="mail-outline" size={20} color={GOLD} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={GOLD_FAINT}
+              selectionColor={GOLD}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+            />
+          </View>
+
+          {/* Password */}
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={20} color={GOLD} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={GOLD_FAINT}
+              selectionColor={GOLD}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              autoComplete="current-password"
+            />
+            <TouchableOpacity
+              onPress={() => setShowPassword(v => !v)}
+              style={styles.eyeBtn}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                size={20}
+                color={GOLD}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* SIGN IN — REPLACE WITH CUSTOM ASSET LATER */}
           <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleSignIn}
             disabled={loading}
+            activeOpacity={0.85}
+            style={[styles.signInShadow, loading && { opacity: 0.7 }]}
           >
-            {loading
-              ? <ActivityIndicator color="#F5ECD7" />
-              : <Text style={styles.buttonText}>Sign In</Text>
-            }
+            <GoldGradient style={styles.signInBtn}>
+              {loading
+                ? <ActivityIndicator color={DARK_GREEN} />
+                : <Text style={styles.signInText}>SIGN IN</Text>
+              }
+            </GoldGradient>
           </TouchableOpacity>
-        </View>
 
-        <Link href="/(auth)/signup" asChild>
-          <TouchableOpacity style={styles.switchLink}>
-            <Text style={styles.switchText}>
-              New here? <Text style={styles.switchTextBold}>Create an account</Text>
-            </Text>
+          {/* OR divider */}
+          <View style={styles.orRow}>
+            <View style={styles.orLine} />
+            <Text style={styles.orText}>OR</Text>
+            <View style={styles.orLine} />
+          </View>
+
+          {/* Fingerprint — placeholder. REPLACE WITH CUSTOM ASSET LATER */}
+          <TouchableOpacity
+            style={styles.fingerprintBtn}
+            onPress={() => Alert.alert('Coming soon', 'Biometric sign-in is on the way.')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="finger-print" size={30} color={GOLD} />
           </TouchableOpacity>
-        </Link>
-      </View>
-    </KeyboardAvoidingView>
+
+          {/* CREATE AN ACCOUNT — REPLACE WITH CUSTOM ASSET LATER */}
+          <Link href="/(auth)/signup" asChild>
+            <TouchableOpacity style={styles.createBtn} activeOpacity={0.7}>
+              <Text style={styles.createText}>CREATE AN ACCOUNT</Text>
+              <Ionicons name="chevron-forward" size={16} color={GOLD} />
+            </TouchableOpacity>
+          </Link>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  inner: {
-    flex: 1,
+  scroll: {
+    flexGrow: 1,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 32,
+    paddingHorizontal: 28,
+    paddingVertical: 48,
   },
+
+  monogram: {
+    width: 140, height: 140,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 4,
+  },
+  monogramD: {
+    fontFamily: 'ui-serif', fontSize: 110, color: GOLD,
+    lineHeight: 124,
+  },
+  monogramHeart: {
+    position: 'absolute', bottom: 22, right: 34,
+    color: GOLD, fontSize: 30,
+  },
+
   wordmark: {
-    fontFamily: 'serif',
-    fontSize: 28,
-    color: '#C9A84C',
-    textAlign: 'center',
-    letterSpacing: 2,
-    marginBottom: 6,
+    fontFamily: 'ui-serif', fontSize: 40, color: GOLD,
+    letterSpacing: 2, marginBottom: 10,
+  },
+  dividerRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14,
+  },
+  dividerLine:      { width: 54, height: 1, backgroundColor: GOLD_SOFT },
+  dividerLineShort: { width: 38, height: 1, backgroundColor: GOLD_SOFT },
+  dividerHeart:     { color: GOLD, fontSize: 13 },
+  dividerDiamond:   { color: GOLD, fontSize: 9 },
+
+  welcome: {
+    color: GOLD, fontSize: 32, fontWeight: '600',
+    letterSpacing: 6, fontFamily: 'ui-serif', marginBottom: 10,
   },
   tagline: {
-    fontSize: 13,
-    color: '#9A8C7A',
-    textAlign: 'center',
-    letterSpacing: 1,
-    fontStyle: 'italic',
-    marginBottom: 48,
+    color: GOLD_SOFT, fontSize: 16, fontStyle: 'italic',
+    fontFamily: 'ui-serif', marginBottom: 32,
   },
-  form: {
-    gap: 14,
-  },
-  input: {
-    backgroundColor: '#243327',
-    borderWidth: 1,
-    borderColor: '#3A4F3D',
-    borderRadius: 10,
+
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    width: '100%', height: 56,
+    backgroundColor: INPUT_FILL,
+    borderWidth: 1.5, borderColor: GOLD,
+    borderRadius: 12, marginBottom: 14,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#F5ECD7',
   },
-  button: {
-    backgroundColor: '#C9A84C',
-    borderRadius: 10,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 6,
+  inputIcon: { marginRight: 12 },
+  input:     { flex: 1, color: '#F5ECD7', fontSize: 16, height: '100%' },
+  eyeBtn:    { padding: 6 },
+
+  signInShadow: {
+    width: '100%', marginTop: 8,
+    shadowColor: GOLD, shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45, shadowRadius: 12, elevation: 8,
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  signInBtn: {
+    height: 56, borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
   },
-  buttonText: {
-    color: '#1C2B1E',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+  signInText: {
+    color: DARK_GREEN, fontSize: 17, fontWeight: '700', letterSpacing: 3,
   },
-  switchLink: {
-    marginTop: 28,
-    alignItems: 'center',
+
+  orRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    width: '80%', marginVertical: 22,
   },
-  switchText: {
-    color: '#9A8C7A',
-    fontSize: 14,
+  orLine: { flex: 1, height: 1, backgroundColor: GOLD_FAINT },
+  orText: { color: GOLD_SOFT, fontSize: 13, letterSpacing: 2 },
+
+  fingerprintBtn: {
+    width: 62, height: 62, borderRadius: 31,
+    borderWidth: 1.5, borderColor: GOLD,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 26,
   },
-  switchTextBold: {
-    color: '#C9A84C',
-    fontWeight: '600',
+
+  createBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, width: '100%', height: 56,
+    borderWidth: 1.5, borderColor: GOLD, borderRadius: 12,
   },
+  createText: { color: GOLD, fontSize: 15, fontWeight: '600', letterSpacing: 2 },
 });
