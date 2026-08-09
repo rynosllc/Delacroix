@@ -26,7 +26,7 @@ export function BottomNavBar() {
           <TouchableOpacity
             key={tab.route}
             style={styles.tab}
-            onPress={() => router.push(tab.route as string)}
+            onPress={() => router.push(tab.route)}
             activeOpacity={0.7}
           >
             <Text style={[styles.icon, active && styles.iconActive]}>{tab.icon}</Text>

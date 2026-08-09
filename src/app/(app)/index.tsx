@@ -114,7 +114,7 @@ export default function HomeScreen() {
               <TouchableOpacity
                 key={btn.route}
                 style={styles.hubBtn}
-                onPress={() => router.push(btn.route as string)}
+                onPress={() => router.push(btn.route)}
                 activeOpacity={0.7}
               >
                 <Text style={styles.hubIcon}>{btn.icon}</Text>

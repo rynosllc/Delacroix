@@ -69,7 +69,7 @@ export default function YouScreen() {
                 {/* REPLACE WITH CUSTOM ASSET LATER */}
                 <TouchableOpacity
                   style={styles.row}
-                  onPress={() => router.push(row.route as string)}
+                  onPress={() => router.push(row.route)}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.rowIcon}>{row.icon}</Text>
