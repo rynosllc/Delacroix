@@ -16,6 +16,7 @@ const corsHeaders = {
 
 interface CreateGiftPayload {
   recipient_contact_id: string;
+  // Occasion slug — templates.id is text ('birthday', 'anniversary', ...)
   template_id: string;
   message_text: string;
   message_source: "manual" | "ai_generated" | "ai_polished";
