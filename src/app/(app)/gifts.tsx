@@ -28,11 +28,11 @@ const OCCASION_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  scheduled: '#C9A84C',
-  sent:      '#7FB27F',
-  claimed:   '#5FA85F',
+  scheduled: Brand.muted,
+  sent:      Brand.muted,
+  claimed:   Brand.gold,
   declined:  '#C0392B',
-  expired:   '#9A8C7A',
+  expired:   Brand.muted,
 };
 
 interface SentGift {

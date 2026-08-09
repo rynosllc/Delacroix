@@ -45,3 +45,6 @@ example
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Claude Code local settings
+.claude/settings.local.json
