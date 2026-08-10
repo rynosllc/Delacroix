@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, ActivityIndicator, ImageBackground,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
 
@@ -33,29 +33,32 @@ export default function HomeScreen() {
   const [momentLoading, setMomentLoading] = useState(true);
   const [hasContacts, setHasContacts] = useState(true);
 
-  useEffect(() => {
-    supabase
-      .from('recipient_contacts')
-      .select('id, display_name, birthday')
-      .not('birthday', 'is', null)
-      .then(({ data }) => {
-        if (!data || data.length === 0) {
-          setHasContacts(false);
-          setMomentLoading(false);
-          return;
-        }
-        let soonest: UpcomingContact | null = null;
-        for (const c of data) {
-          if (!c.birthday) continue;
-          const days = daysUntilBirthday(c.birthday);
-          if (days <= 30 && (!soonest || days < soonest.days)) {
-            soonest = { id: c.id, display_name: c.display_name, days };
+  // Refetch every time the screen gains focus so a just-added contact shows up
+  useFocusEffect(
+    useCallback(() => {
+      supabase
+        .from('recipient_contacts')
+        .select('id, display_name, birthday')
+        .not('birthday', 'is', null)
+        .then(({ data }) => {
+          if (!data || data.length === 0) {
+            setHasContacts(false);
+            setMomentLoading(false);
+            return;
           }
-        }
-        setUpcoming(soonest);
-        setMomentLoading(false);
-      });
-  }, []);
+          let soonest: UpcomingContact | null = null;
+          for (const c of data) {
+            if (!c.birthday) continue;
+            const days = daysUntilBirthday(c.birthday);
+            if (days <= 30 && (!soonest || days < soonest.days)) {
+              soonest = { id: c.id, display_name: c.display_name, days };
+            }
+          }
+          setUpcoming(soonest);
+          setMomentLoading(false);
+        });
+    }, [])
+  );
 
   return (
     <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">

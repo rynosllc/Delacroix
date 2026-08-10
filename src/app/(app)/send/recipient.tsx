@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   SafeAreaView, ActivityIndicator, ImageBackground, TextInput,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
@@ -25,13 +25,16 @@ export default function RecipientStep() {
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
 
-  useEffect(() => {
-    supabase
-      .from('recipient_contacts')
-      .select('id, display_name, relation, email')
-      .order('display_name', { ascending: true })
-      .then(({ data }) => { setContacts(data ?? []); setLoading(false); });
-  }, []);
+  // Refetch every time the screen gains focus so a just-added contact shows up
+  useFocusEffect(
+    useCallback(() => {
+      supabase
+        .from('recipient_contacts')
+        .select('id, display_name, relation, email')
+        .order('display_name', { ascending: true })
+        .then(({ data }) => { setContacts(data ?? []); setLoading(false); });
+    }, [])
+  );
 
   const filtered = search.trim()
     ? contacts.filter(c => c.display_name.toLowerCase().includes(search.toLowerCase()))

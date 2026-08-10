@@ -1,9 +1,9 @@
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   ActivityIndicator, RefreshControl, ImageBackground, TextInput,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
@@ -68,7 +68,10 @@ export default function PeopleScreen() {
     setContacts(data ?? []);
   }
 
-  useEffect(() => { fetchContacts().finally(() => setLoading(false)); }, []);
+  // Refetch every time the screen gains focus so a just-added contact shows up
+  useFocusEffect(
+    useCallback(() => { fetchContacts().finally(() => setLoading(false)); }, [])
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
