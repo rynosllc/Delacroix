@@ -38,7 +38,7 @@ serve(async (req) => {
 
     const { data: gift, error } = await supabase
       .from("gifts")
-      .select("template_id, message_text, cash_amount, status, users!gifts_sender_id_fkey(display_name)")
+      .select("template_id, message_text, cash_amount, status, thank_you_message, users!gifts_sender_id_fkey(display_name)")
       .eq("claim_token", token)
       .single();
 
@@ -55,6 +55,7 @@ serve(async (req) => {
       message_text: gift.message_text,
       cash_amount: gift.cash_amount,
       status: gift.status,
+      has_thank_you: !!gift.thank_you_message,
     });
   } catch (_e) {
     return json({ error: "Bad request" }, 400);
