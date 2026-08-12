@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, ImageBackground, TextInput,
+  SafeAreaView, ActivityIndicator, ImageBackground, TextInput, Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -9,6 +9,7 @@ import { Brand } from '@/constants/brand';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 
 const BG = require('../../../../assets/background.png');
+const ADD_BUTTON = require('../../../../assets/images/nav/add.png');
 
 interface Contact {
   id: string; display_name: string; relation: string | null; email: string | null;
@@ -96,7 +97,8 @@ export default function RecipientStep() {
                 onPress={() => router.push('/contact/new')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.addNewText}>＋  Add new person</Text>
+                <Image source={ADD_BUTTON} style={styles.addNewIcon} resizeMode="contain" />
+                <Text style={styles.addNewText}>Add new person</Text>
               </TouchableOpacity>
             }
           />
@@ -130,6 +132,11 @@ const styles = StyleSheet.create({
   sub:     { color: Brand.muted, fontSize: 13, marginTop: 1 },
   chevron: { color: Brand.greenBorder, fontSize: 22 },
   sep:     { height: 1, backgroundColor: Brand.greenBorder, marginLeft: 78, opacity: 0.4 },
-  addNew:  { margin: 20, paddingVertical: 16, alignItems: 'center', borderTopWidth: 1, borderTopColor: Brand.greenBorder },
+  addNew: {
+    margin: 20, paddingVertical: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    borderTopWidth: 1, borderTopColor: Brand.greenBorder,
+  },
+  addNewIcon: { width: 26, height: 26 },
   addNewText: { color: Brand.gold, fontSize: 15 },
 });

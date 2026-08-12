@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  ActivityIndicator, RefreshControl, ImageBackground, TextInput,
+  ActivityIndicator, RefreshControl, ImageBackground, TextInput, Image,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -10,6 +10,7 @@ import { Brand } from '@/constants/brand';
 import { BottomNavBar } from '@/components/BottomNavBar';
 
 const BG = require('../../../assets/background.png');
+const ADD_BUTTON = require('../../../assets/images/nav/add.png');
 
 interface Contact {
   id: string; display_name: string; email: string | null;
@@ -167,7 +168,7 @@ export default function PeopleScreen() {
           onPress={() => router.push('/contact/new')}
           activeOpacity={0.85}
         >
-          <Text style={styles.fabText}>＋</Text>
+          <Image source={ADD_BUTTON} style={styles.fabImage} resizeMode="contain" />
         </TouchableOpacity>
 
         <BottomNavBar />
@@ -206,11 +207,10 @@ const styles = StyleSheet.create({
   sep:     { height: 1, backgroundColor: Brand.greenBorder, marginLeft: 78, opacity: 0.4 },
   fab: {
     position: 'absolute', right: 24,
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: Brand.gold,
+    width: 62, height: 62,
     alignItems: 'center', justifyContent: 'center',
     shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3, shadowRadius: 8,
+    shadowOpacity: 0.35, shadowRadius: 8,
   },
-  fabText: { color: Brand.green, fontSize: 28, lineHeight: 32 },
+  fabImage: { width: 62, height: 62 },
 });
