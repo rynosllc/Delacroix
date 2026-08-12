@@ -1,12 +1,14 @@
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, Text, StyleSheet, Image, ImageBackground } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+const PILL = require('../../assets/images/nav/pill.png');
+
 const TABS = [
-  { label: 'Home',   icon: '🏠', route: '/'       },
-  { label: 'People', icon: '👥', route: '/people'  },
-  { label: 'Gifts',  icon: '🎁', route: '/gifts'   },
-  { label: 'You',    icon: '👤', route: '/profile' },
+  { label: 'Home',   icon: require('../../assets/images/nav/home.png'),    route: '/'        },
+  { label: 'People', icon: require('../../assets/images/nav/people.png'),  route: '/people'  },
+  { label: 'Gifts',  icon: require('../../assets/images/nav/gifts.png'),   route: '/gifts'   },
+  { label: 'You',    icon: require('../../assets/images/nav/profile.png'), route: '/profile' },
 ] as const;
 
 export function BottomNavBar() {
@@ -15,40 +17,60 @@ export function BottomNavBar() {
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      {TABS.map(tab => {
-        const active =
-          tab.route === '/'
-            ? pathname === '/' || pathname === ''
-            : pathname === tab.route || pathname.startsWith(tab.route + '/');
-        return (
-          // REPLACE WITH CUSTOM ASSET LATER
-          <TouchableOpacity
-            key={tab.route}
-            style={styles.tab}
-            onPress={() => router.push(tab.route)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.icon, active && styles.iconActive]}>{tab.icon}</Text>
-            <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
-          </TouchableOpacity>
-        );
-      })}
+    <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+      <ImageBackground
+        source={PILL}
+        style={styles.pill}
+        imageStyle={styles.pillImage}
+        resizeMode="stretch"
+      >
+        {TABS.map(tab => {
+          const active =
+            tab.route === '/'
+              ? pathname === '/' || pathname === ''
+              : pathname === tab.route || pathname.startsWith(tab.route + '/');
+          return (
+            <TouchableOpacity
+              key={tab.route}
+              style={styles.tab}
+              onPress={() => router.push(tab.route)}
+              activeOpacity={0.7}
+            >
+              <Image
+                source={tab.icon}
+                style={[styles.icon, !active && styles.iconInactive]}
+                resizeMode="contain"
+              />
+              <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ImageBackground>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: {
-    backgroundColor: 'rgba(15, 30, 15, 0.85)',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(212, 175, 55, 0.3)',
+  wrap: {
+    paddingHorizontal: 14,
+    backgroundColor: 'transparent',
     flexDirection: 'row',
-    paddingTop: 12,
   },
-  tab:        { flex: 1, alignItems: 'center', gap: 4 },
-  icon:       { fontSize: 22, color: 'rgba(212, 175, 55, 0.4)' },
-  iconActive: { color: '#D4AF37' },
-  label:       { fontSize: 10, color: 'rgba(212, 175, 55, 0.4)', letterSpacing: 0.5 },
+  pill: {
+    flex: 1,
+    height: 78,
+    maxWidth: 560,
+    marginHorizontal: 'auto',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-evenly',
+    paddingHorizontal: 18,
+    overflow: 'hidden',
+  },
+  pillImage: { width: '100%', height: '100%' },
+  tab:  { alignItems: 'center', gap: 3, minWidth: 54 },
+  icon: { width: 36, height: 30 },
+  iconInactive: { opacity: 0.5 },
+  label:       { fontSize: 9, color: 'rgba(212, 175, 55, 0.45)', letterSpacing: 1 },
   labelActive: { color: '#D4AF37' },
 });

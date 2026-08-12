@@ -6,6 +6,7 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
+import { BottomNavBar } from '@/components/BottomNavBar';
 
 const BG = require('../../../assets/background.png');
 
@@ -126,6 +127,7 @@ export default function HomeScreen() {
             ))}
           </View>
         </ScrollView>
+        <BottomNavBar />
       </SafeAreaView>
     </ImageBackground>
   );
