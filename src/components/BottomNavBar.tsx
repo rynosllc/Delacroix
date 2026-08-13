@@ -60,14 +60,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'transparent',
   },
+  // The pill artwork carries its own baked-in drop shadow — no RN shadow.
   shadowWrap: {
     width: '92%',
     maxWidth: 560,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
   },
   pill: {
     height: 92,
