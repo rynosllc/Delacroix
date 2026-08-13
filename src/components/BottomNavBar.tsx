@@ -18,59 +18,81 @@ export function BottomNavBar() {
 
   return (
     <View style={[styles.wrap, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-      <ImageBackground
-        source={PILL}
-        style={styles.pill}
-        imageStyle={styles.pillImage}
-        resizeMode="stretch"
-      >
-        {TABS.map(tab => {
-          const active =
-            tab.route === '/'
-              ? pathname === '/' || pathname === ''
-              : pathname === tab.route || pathname.startsWith(tab.route + '/');
-          return (
-            <TouchableOpacity
-              key={tab.route}
-              style={styles.tab}
-              onPress={() => router.push(tab.route)}
-              activeOpacity={0.7}
-            >
-              <Image
-                source={tab.icon}
-                style={[styles.icon, !active && styles.iconInactive]}
-                resizeMode="contain"
-              />
-              <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ImageBackground>
+      <View style={styles.shadowWrap}>
+        <ImageBackground
+          source={PILL}
+          style={styles.pill}
+          imageStyle={styles.pillImage}
+          resizeMode="stretch"
+        >
+          {TABS.map(tab => {
+            const active =
+              tab.route === '/'
+                ? pathname === '/' || pathname === ''
+                : pathname === tab.route || pathname.startsWith(tab.route + '/');
+            return (
+              <TouchableOpacity
+                key={tab.route}
+                style={styles.tab}
+                onPress={() => router.push(tab.route)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.iconWrap}>
+                  {active && <View style={styles.glow} />}
+                  <Image
+                    source={tab.icon}
+                    style={[styles.icon, active && styles.iconActive]}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ImageBackground>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    paddingHorizontal: 14,
+    alignItems: 'center',
     backgroundColor: 'transparent',
-    flexDirection: 'row',
+  },
+  shadowWrap: {
+    width: '92%',
+    maxWidth: 560,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   pill: {
-    flex: 1,
-    height: 78,
-    maxWidth: 560,
-    marginHorizontal: 'auto',
+    height: 92,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-evenly',
-    paddingHorizontal: 18,
-    overflow: 'hidden',
+    paddingHorizontal: 16,
   },
   pillImage: { width: '100%', height: '100%' },
-  tab:  { alignItems: 'center', gap: 3, minWidth: 54 },
+  tab: { flex: 1, alignItems: 'center', gap: 3 },
+  iconWrap: {
+    width: 48, height: 42,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  glow: {
+    position: 'absolute',
+    width: 46, height: 46, borderRadius: 23,
+    backgroundColor: 'rgba(212, 175, 55, 0.20)',
+    shadowColor: '#D4AF37',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.85,
+    shadowRadius: 12,
+  },
   icon: { width: 36, height: 30 },
-  iconInactive: { opacity: 0.5 },
-  label:       { fontSize: 9, color: 'rgba(212, 175, 55, 0.45)', letterSpacing: 1 },
+  iconActive: { transform: [{ scale: 1.2 }] },
+  label:       { fontSize: 9, color: 'rgba(212, 175, 55, 0.55)', letterSpacing: 1 },
   labelActive: { color: '#D4AF37' },
 });

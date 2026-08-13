@@ -4,6 +4,7 @@ import {
   SafeAreaView, ScrollView, ActivityIndicator, ImageBackground,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
 import { BottomNavBar } from '@/components/BottomNavBar';
@@ -11,10 +12,10 @@ import { BottomNavBar } from '@/components/BottomNavBar';
 const BG = require('../../../assets/background.png');
 
 const HUB_BUTTONS = [
-  { label: 'YOUR PEOPLE', icon: '👥', route: '/people'          },
-  { label: 'SEND A GIFT', icon: '🎁', route: '/send/recipient'  },
-  { label: 'YOUR GIFTS',  icon: '📋', route: '/gifts'           },
-  { label: 'YOU',         icon: '👤', route: '/profile'         },
+  { label: 'YOUR PEOPLE', icon: 'people-outline', route: '/people'         },
+  { label: 'SEND A GIFT', icon: 'gift-outline',   route: '/send/recipient' },
+  { label: 'YOUR GIFTS',  icon: 'list-outline',   route: '/gifts'          },
+  { label: 'YOU',         icon: 'person-outline', route: '/profile'        },
 ] as const;
 
 interface UpcomingContact { id: string; display_name: string; days: number }
@@ -121,7 +122,7 @@ export default function HomeScreen() {
                 onPress={() => router.push(btn.route)}
                 activeOpacity={0.7}
               >
-                <Text style={styles.hubIcon}>{btn.icon}</Text>
+                <Ionicons name={btn.icon} size={34} color="#D4AF37" />
                 <Text style={styles.hubLabel}>{btn.label}</Text>
               </TouchableOpacity>
             ))}
@@ -153,17 +154,16 @@ const styles = StyleSheet.create({
   wordmarkBlock: { alignItems: 'center', gap: 8 },
   wordmark:      { fontFamily: 'ui-serif', fontSize: 38, color: Brand.gold, letterSpacing: 3 },
   tagline:       { color: 'rgba(212,175,55,0.65)', fontSize: 13, fontStyle: 'italic', letterSpacing: 1 },
-  divider:       { width: 48, height: 1, backgroundColor: 'rgba(212,175,55,0.4)', marginTop: 4 },
+  divider:       { width: 48, height: 1, backgroundColor: 'rgba(212,175,55,0.4)', marginTop: 8 },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
   hubBtn: {
     width: '47.5%', height: 140,
     backgroundColor: 'rgba(212, 175, 55, 0.10)',
     borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.35)',
-    borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center', gap: 10,
+    borderRadius: 16, padding: 16,
+    alignItems: 'center', justifyContent: 'center', gap: 12,
   },
-  hubIcon:  { fontSize: 34 },
   hubLabel: {
     color: Brand.gold, fontSize: 11, fontWeight: '700',
     letterSpacing: 1.5, fontFamily: 'ui-serif',

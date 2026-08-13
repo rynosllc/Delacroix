@@ -164,7 +164,7 @@ export default function PeopleScreen() {
 
         {/* FAB — positioned above nav bar */}
         <TouchableOpacity
-          style={[styles.fab, { bottom: insets.bottom + 80 + 16 }]}
+          style={[styles.fab, { bottom: insets.bottom + 92 + 20 }]}
           onPress={() => router.push('/contact/new')}
           activeOpacity={0.85}
         >
