@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
+import { isLuckyAmount } from '@/lib/luck';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 
 const BG = require('../../../../assets/background.png');
@@ -97,14 +98,25 @@ export default function ReviewStep() {
       scheduled_send_at: sendAt.toISOString(),
     });
 
-    setSending(false);
     if (error) {
+      setSending(false);
       Alert.alert('Could not send gift', error.message);
       return;
     }
+
+    // The hundredth gift ever sent earns a once-in-a-lifetime moment
+    const { count } = await supabase
+      .from('gifts')
+      .select('id', { count: 'exact', head: true })
+      .eq('sender_id', user.id);
+
+    setSending(false);
     router.replace({
       pathname: '/send/success',
-      params: { recipientName: params.recipientName },
+      params: {
+        recipientName: params.recipientName,
+        ...(count === 100 ? { centieme: '1' } : {}),
+      },
     });
   }
 
@@ -149,7 +161,11 @@ export default function ReviewStep() {
             <View style={styles.rowSep} />
             <SummaryRow
               label="GIFT"
-              value={hasGift ? `$${amount.toFixed(2)}` : 'No cash gift'}
+              value={
+                hasGift
+                  ? `$${amount.toFixed(2)}${isLuckyAmount(params.giftAmount) ? ' ✨' : ''}`
+                  : 'No cash gift'
+              }
               onEdit={() => editStep('/send/gift')}
             />
           </View>

@@ -1,6 +1,8 @@
+import { useEffect, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
-  SafeAreaView, ImageBackground,
+  SafeAreaView, ImageBackground, Animated, Dimensions, Easing,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Brand } from '@/constants/brand';
@@ -9,7 +11,10 @@ const BG = require('../../../../assets/background.png');
 
 export default function SendSuccessScreen() {
   const router = useRouter();
-  const { recipientName } = useLocalSearchParams<{ recipientName: string }>();
+  const { recipientName, centieme } = useLocalSearchParams<{
+    recipientName: string; centieme?: string;
+  }>();
+  const isCentieme = centieme === '1';
 
   return (
     <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
@@ -24,6 +29,15 @@ export default function SendSuccessScreen() {
               {recipientName} will receive it with love.
             </Text>
           ) : null}
+
+          {isCentieme && (
+            <View style={styles.plaque}>
+              <Text style={styles.plaqueTitle}>Centième cadeau</Text>
+              <Text style={styles.plaqueSub}>
+                One hundred gifts, all from the heart.
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* REPLACE WITH CUSTOM ASSET LATER */}
@@ -42,8 +56,86 @@ export default function SendSuccessScreen() {
         >
           <Text style={styles.viewGiftsText}>View your gifts</Text>
         </TouchableOpacity>
+
+        {isCentieme && <HeartRain />}
       </SafeAreaView>
     </ImageBackground>
+  );
+}
+
+// One-shot golden heart confetti for the hundredth gift.
+const HEART_COUNT = 24;
+
+function HeartRain() {
+  const { width, height } = Dimensions.get('window');
+  const hearts = useRef(
+    Array.from({ length: HEART_COUNT }, (_, i) => ({
+      progress: new Animated.Value(0),
+      x: Math.random() * width,
+      sway: (Math.random() - 0.5) * 90,
+      size: 12 + Math.random() * 14,
+      delay: Math.random() * 1200,
+      duration: 2600 + Math.random() * 1400,
+      opacity: 0.5 + Math.random() * 0.5,
+    })),
+  ).current;
+
+  useEffect(() => {
+    Animated.stagger(
+      40,
+      hearts.map(h =>
+        Animated.timing(h.progress, {
+          toValue: 1,
+          duration: h.duration,
+          delay: h.delay,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: Platform.OS !== 'web',
+        }),
+      ),
+    ).start();
+  }, []);
+
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {hearts.map((h, i) => (
+        <Animated.Text
+          key={i}
+          style={{
+            position: 'absolute',
+            left: h.x,
+            top: -40,
+            fontSize: h.size,
+            color: i % 3 === 0 ? '#E8C97A' : Brand.gold,
+            opacity: h.progress.interpolate({
+              inputRange: [0, 0.1, 0.85, 1],
+              outputRange: [0, h.opacity, h.opacity, 0],
+            }),
+            transform: [
+              {
+                translateY: h.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0, height + 80],
+                }),
+              },
+              {
+                translateX: h.progress.interpolate({
+                  inputRange: [0, 0.5, 1],
+                  outputRange: [0, h.sway, h.sway * 0.4],
+                }),
+              },
+              {
+                rotate: h.progress.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['0deg', `${h.sway}deg`],
+                }),
+              },
+            ],
+          }}
+        >
+          ♥
+        </Animated.Text>
+      ))}
+    </View>
   );
 }
 
@@ -59,6 +151,16 @@ const styles = StyleSheet.create({
   check:    { color: '#D4AF37', fontSize: 48, lineHeight: 56 },
   title:    { color: Brand.gold, fontSize: 26, fontFamily: 'ui-serif', letterSpacing: 1, textAlign: 'center' },
   subtitle: { color: Brand.muted, fontSize: 14, fontStyle: 'italic', textAlign: 'center' },
+
+  plaque: {
+    marginTop: 10, paddingHorizontal: 24, paddingVertical: 14,
+    backgroundColor: 'rgba(36, 51, 39, 0.9)',
+    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.6)',
+    borderRadius: 10, alignItems: 'center', gap: 4,
+  },
+  plaqueTitle: { color: Brand.gold, fontSize: 18, fontFamily: 'ui-serif', letterSpacing: 2 },
+  plaqueSub:   { color: Brand.muted, fontSize: 12, fontStyle: 'italic' },
+
   doneBtn: {
     height: 56, backgroundColor: '#D4AF37',
     borderRadius: 12, alignItems: 'center', justifyContent: 'center',

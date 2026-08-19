@@ -41,6 +41,7 @@ interface SentGift {
   cash_amount: number | null;
   status: string;
   created_at: string;
+  thank_you_message: string | null;
   recipient_contacts: { display_name: string } | null;
 }
 
@@ -54,7 +55,7 @@ export default function GiftsScreen() {
   async function fetchSentGifts() {
     const { data } = await supabase
       .from('gifts')
-      .select('id, template_id, cash_amount, status, created_at, recipient_contacts(display_name)')
+      .select('id, template_id, cash_amount, status, created_at, thank_you_message, recipient_contacts(display_name)')
       .order('created_at', { ascending: false });
     setSentGifts((data as unknown as SentGift[]) ?? []);
   }
@@ -123,6 +124,15 @@ export default function GiftsScreen() {
                       {OCCASION_LABELS[item.template_id] ?? item.template_id}
                       {item.cash_amount ? `  ·  $${Number(item.cash_amount).toFixed(2)}` : ''}
                     </Text>
+                    {/* A thank-you in French earns a quiet wax seal */}
+                    {/merci/i.test(item.thank_you_message ?? '') && (
+                      <View style={styles.merciRow}>
+                        <View style={styles.merciSeal}>
+                          <Text style={styles.merciSealHeart}>♥</Text>
+                        </View>
+                        <Text style={styles.merciText}>Merci mille fois</Text>
+                      </View>
+                    )}
                   </View>
                   <View style={[styles.badge, { borderColor: STATUS_COLORS[item.status] ?? Brand.muted }]}>
                     <Text style={[styles.badgeText, { color: STATUS_COLORS[item.status] ?? Brand.muted }]}>
@@ -174,6 +184,15 @@ const styles = StyleSheet.create({
   },
   giftRecipient: { color: Brand.cream, fontSize: 16 },
   giftMeta:      { color: Brand.muted, fontSize: 13 },
+  merciRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  merciSeal: {
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: '#7A2230',
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.6)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  merciSealHeart: { color: '#E8C97A', fontSize: 8, lineHeight: 10 },
+  merciText:      { color: 'rgba(212,175,55,0.75)', fontSize: 11, fontStyle: 'italic' },
   badge: {
     borderWidth: 1, borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 4,

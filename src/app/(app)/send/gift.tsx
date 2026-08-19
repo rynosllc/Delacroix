@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ImageBackground, TextInput, ScrollView,
+  ImageBackground, TextInput, ScrollView, Animated,
+  Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Brand } from '@/constants/brand';
+import { isLuckyAmount } from '@/lib/luck';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 
 const BG = require('../../../../assets/background.png');
@@ -26,6 +28,20 @@ export default function GiftAmountStep() {
   const amount  = parseFloat(amountStr) || 0;
   const { fee, total } = calcFee(amount);
   const valid   = amount >= 5;
+
+  // Repdigit amounts ($5.55, $77.77…) glitter for a moment
+  const lucky = isLuckyAmount(amountStr);
+  const sparkle = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!lucky) { sparkle.setValue(0); return; }
+    Animated.sequence([
+      Animated.timing(sparkle, { toValue: 1, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(sparkle, { toValue: 0.35, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(sparkle, { toValue: 1, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(sparkle, { toValue: 0.35, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+      Animated.timing(sparkle, { toValue: 1, duration: 250, useNativeDriver: Platform.OS !== 'web' }),
+    ]).start();
+  }, [lucky]);
 
   function advance(withAmount: string) {
     router.push({ pathname: '/send/review', params: { ...params, giftAmount: withAmount } });
@@ -73,7 +89,14 @@ export default function GiftAmountStep() {
               <View style={styles.feeDivider} />
               <View style={styles.feeLine}>
                 <Text style={styles.feeLabelBold}>Total charged</Text>
-                <Text style={styles.feeTotal}>${total.toFixed(2)}</Text>
+                <View style={styles.feeTotalRow}>
+                  {lucky && (
+                    <Animated.Text style={[styles.luckySparkle, { opacity: sparkle }]}>
+                      ✨
+                    </Animated.Text>
+                  )}
+                  <Text style={styles.feeTotal}>${total.toFixed(2)}</Text>
+                </View>
               </View>
             </View>
           )}
@@ -127,6 +150,8 @@ const styles = StyleSheet.create({
   feeLabelBold: { color: Brand.cream, fontSize: 15, fontWeight: '600' },
   feeValue:     { color: Brand.cream, fontSize: 14 },
   feeTotal:     { color: Brand.gold,  fontSize: 16, fontWeight: '700' },
+  feeTotalRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  luckySparkle: { fontSize: 13 },
   feeDivider:   { height: 1, backgroundColor: Brand.greenBorder },
 
   continueBtn: {
