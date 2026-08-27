@@ -8,6 +8,7 @@ import { Brand } from '@/constants/brand';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 
 const BG = require('../../../../assets/background.png');
+const SQUARE = require('../../../../assets/images/ui/square.png');
 
 const OCCASIONS = [
   { key: 'birthday',    label: 'Birthday',     icon: '🎂' },
@@ -44,17 +45,23 @@ export default function OccasionStep() {
 
         <ScrollView contentContainerStyle={styles.grid}>
           {OCCASIONS.map(occ => (
-            // REPLACE WITH CUSTOM ASSET LATER
             <TouchableOpacity
               key={occ.key}
               style={[styles.card, selected === occ.key && styles.cardActive]}
               onPress={() => setSelected(occ.key)}
               activeOpacity={0.7}
             >
-              <Text style={styles.cardIcon}>{occ.icon}</Text>
-              <Text style={[styles.cardLabel, selected === occ.key && styles.cardLabelActive]}>
-                {occ.label}
-              </Text>
+              <ImageBackground
+                source={SQUARE}
+                style={styles.cardInner}
+                imageStyle={styles.cardImage}
+                resizeMode="stretch"
+              >
+                <Text style={styles.cardIcon}>{occ.icon}</Text>
+                <Text style={[styles.cardLabel, selected === occ.key && styles.cardLabelActive]}>
+                  {occ.label}
+                </Text>
+              </ImageBackground>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -82,11 +89,15 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '47%', aspectRatio: 1,
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.3)',
-    borderRadius: 16, alignItems: 'center', justifyContent: 'center', gap: 10,
+    borderRadius: 20,
+    opacity: 0.82,
   },
-  cardActive:      { backgroundColor: 'rgba(212, 175, 55, 0.18)', borderColor: Brand.gold },
+  cardActive: { opacity: 1 },
+  cardInner: {
+    flex: 1,
+    alignItems: 'center', justifyContent: 'center', gap: 10,
+  },
+  cardImage: { width: '100%', height: '100%' },
   cardIcon:        { fontSize: 36 },
   cardLabel:       { color: Brand.muted, fontSize: 14, fontWeight: '600', letterSpacing: 0.5 },
   cardLabelActive: { color: Brand.gold },

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-  ImageBackground, ScrollView,
+  ImageBackground, ScrollView, Image,
 } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,6 +10,7 @@ import { useAuth } from '@/context/auth';
 import { GoldGradient } from '@/components/GoldGradient';
 
 const BG = require('../../../assets/background.png');
+const WORDMARK = require('../../../assets/images/ui/wordmark.png');
 
 const GOLD       = '#D4AF37';
 const GOLD_SOFT  = 'rgba(212, 175, 55, 0.65)';
@@ -43,22 +44,8 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Monogram — swap for assets/logo-monogram.png when the file exists:
-              <Image source={require('../../../assets/logo-monogram.png')}
-                     style={styles.monogramImage} resizeMode="contain" />
-              REPLACE WITH CUSTOM ASSET LATER */}
-          <View style={styles.monogram}>
-            <Text style={styles.monogramD}>D</Text>
-            <Text style={styles.monogramHeart}>♥</Text>
-          </View>
-
-          {/* Wordmark with divider + heart */}
-          <Text style={styles.wordmark}>DeLacroix</Text>
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerHeart}>♥</Text>
-            <View style={styles.dividerLine} />
-          </View>
+          {/* Gold wordmark (includes the tagline) */}
+          <Image source={WORDMARK} style={styles.wordmarkImage} resizeMode="contain" />
 
           {/* WELCOME with diamond divider */}
           <Text style={styles.welcome}>WELCOME</Text>
@@ -67,8 +54,6 @@ export default function LoginScreen() {
             <Text style={styles.dividerDiamond}>◆</Text>
             <View style={styles.dividerLineShort} />
           </View>
-
-          <Text style={styles.tagline}>It's from the heart.</Text>
 
           {/* Email */}
           <View style={styles.inputWrap}>
@@ -165,30 +150,12 @@ const styles = StyleSheet.create({
     paddingVertical: 48,
   },
 
-  monogram: {
-    width: 140, height: 140,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 4,
-  },
-  monogramD: {
-    fontFamily: 'ui-serif', fontSize: 110, color: GOLD,
-    lineHeight: 124,
-  },
-  monogramHeart: {
-    position: 'absolute', bottom: 22, right: 34,
-    color: GOLD, fontSize: 30,
-  },
+  wordmarkImage: { width: 300, height: 96, marginBottom: 18, marginTop: 24 },
 
-  wordmark: {
-    fontFamily: 'ui-serif', fontSize: 40, color: GOLD,
-    letterSpacing: 2, marginBottom: 10,
-  },
   dividerRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14,
   },
-  dividerLine:      { width: 54, height: 1, backgroundColor: GOLD_SOFT },
   dividerLineShort: { width: 38, height: 1, backgroundColor: GOLD_SOFT },
-  dividerHeart:     { color: GOLD, fontSize: 13 },
   dividerDiamond:   { color: GOLD, fontSize: 9 },
 
   welcome: {

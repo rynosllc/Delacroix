@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ScrollView, ActivityIndicator, ImageBackground, Animated,
-  Platform,
+  Platform, Image,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,8 @@ import { Brand } from '@/constants/brand';
 import { BottomNavBar } from '@/components/BottomNavBar';
 
 const BG = require('../../../assets/background.png');
+const WORDMARK = require('../../../assets/images/ui/wordmark.png');
+const SQUARE = require('../../../assets/images/ui/square.png');
 
 const HUB_BUTTONS = [
   { label: 'YOUR PEOPLE', icon: 'people-outline', route: '/people'         },
@@ -174,11 +176,9 @@ export default function HomeScreen() {
           {/* ── Wordmark ── */}
           <View style={styles.wordmarkBlock}>
             <TouchableOpacity onPress={onWordmarkTap} activeOpacity={1}>
-              <Text style={[styles.wordmark, fete && styles.wordmarkFete]}>DeLacroix</Text>
+              <Image source={WORDMARK} style={styles.wordmarkImage} resizeMode="contain" />
             </TouchableOpacity>
-            <Text style={styles.tagline}>
-              {fete ? 'c’est du fond du cœur' : 'it’s from the heart'}
-            </Text>
+            {fete && <Text style={styles.tagline}>c’est du fond du cœur</Text>}
             <View style={styles.dividerSlot}>
               <Animated.View style={[styles.divider, { transform: [{ scaleX: dividerScale }] }]} />
               <Animated.View
@@ -193,15 +193,21 @@ export default function HomeScreen() {
           {/* ── 2×2 hub grid ── */}
           <View style={styles.grid}>
             {HUB_BUTTONS.map(btn => (
-              // REPLACE WITH CUSTOM ASSET LATER
               <TouchableOpacity
                 key={btn.route}
-                style={styles.hubBtn}
                 onPress={() => router.push(btn.route)}
                 activeOpacity={0.7}
+                style={styles.hubBtnTouch}
               >
-                <Ionicons name={btn.icon} size={34} color="#D4AF37" />
-                <Text style={styles.hubLabel}>{btn.label}</Text>
+                <ImageBackground
+                  source={SQUARE}
+                  style={styles.hubBtn}
+                  imageStyle={styles.hubBtnImage}
+                  resizeMode="stretch"
+                >
+                  <Ionicons name={btn.icon} size={34} color="#D4AF37" />
+                  <Text style={styles.hubLabel}>{btn.label}</Text>
+                </ImageBackground>
               </TouchableOpacity>
             ))}
           </View>
@@ -230,21 +236,19 @@ const styles = StyleSheet.create({
   momentBtnText:  { color: '#1B3A2B', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
 
   wordmarkBlock: { alignItems: 'center', gap: 8 },
-  wordmark:      { fontFamily: 'ui-serif', fontSize: 38, color: Brand.gold, letterSpacing: 3 },
-  wordmarkFete:  { color: '#E0BC55' },
+  wordmarkImage: { width: 280, height: 75 },
   tagline:       { color: 'rgba(212,175,55,0.65)', fontSize: 13, fontStyle: 'italic', letterSpacing: 1 },
   dividerSlot:   { height: 18, marginTop: 4, alignItems: 'center', justifyContent: 'center' },
   divider:       { width: 48, height: 1, backgroundColor: 'rgba(212,175,55,0.4)' },
   dividerHeart:  { position: 'absolute' },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  hubBtnTouch: { width: '47.5%' },
   hubBtn: {
-    width: '47.5%', height: 140,
-    backgroundColor: 'rgba(212, 175, 55, 0.10)',
-    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.35)',
-    borderRadius: 16, padding: 16,
+    height: 140, padding: 16,
     alignItems: 'center', justifyContent: 'center', gap: 12,
   },
+  hubBtnImage: { width: '100%', height: '100%' },
   hubLabel: {
     color: Brand.gold, fontSize: 11, fontWeight: '700',
     letterSpacing: 1.5, fontFamily: 'ui-serif',
