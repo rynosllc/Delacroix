@@ -206,7 +206,13 @@ export default function HomeScreen() {
                   resizeMode="stretch"
                 >
                   <Ionicons name={btn.icon} size={34} color="#D4AF37" />
-                  <Text style={styles.hubLabel}>{btn.label}</Text>
+                  <Text
+                    style={styles.hubLabel}
+                    numberOfLines={1}
+                    maxFontSizeMultiplier={1.15}
+                  >
+                    {btn.label}
+                  </Text>
                 </ImageBackground>
               </TouchableOpacity>
             ))}
@@ -220,7 +226,12 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  scroll: { padding: 20, paddingTop: 8, gap: 24, paddingBottom: 48 },
+  // flexGrow + space-evenly spreads the three blocks through the available
+  // height so the screen doesn't sit top-heavy above the nav pill
+  scroll: {
+    padding: 20, paddingTop: 8, paddingBottom: 24,
+    gap: 24, flexGrow: 1, justifyContent: 'space-evenly',
+  },
 
   momentCard: {
     backgroundColor: 'rgba(28, 43, 30, 0.78)',
@@ -242,11 +253,14 @@ const styles = StyleSheet.create({
   divider:       { width: 48, height: 1, backgroundColor: 'rgba(212,175,55,0.4)' },
   dividerHeart:  { position: 'absolute' },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 22 },
   hubBtnTouch: { width: '47.5%' },
   hubBtn: {
-    height: 140, padding: 16,
-    alignItems: 'center', justifyContent: 'center', gap: 12,
+    height: 168,
+    // The gem frame occupies ~13% of each edge of the artwork — keep the
+    // icon + label group well inside the stitched leather area.
+    padding: 26,
+    alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   hubBtnImage: { width: '100%', height: '100%' },
   hubLabel: {

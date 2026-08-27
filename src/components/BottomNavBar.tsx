@@ -1,13 +1,20 @@
-import { View, TouchableOpacity, Text, StyleSheet, Image, ImageBackground } from 'react-native';
+import {
+  View, TouchableOpacity, Text, StyleSheet, Image, ImageBackground,
+  useWindowDimensions,
+} from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// assets/images/nav/pill.png — generated from the master artwork
-// "assets/images/buttons pill.png" (user's corrected export, 2026-08-13),
-// cropped to the artwork bounds at 1500x322. The asset carries its own
-// shadow and framing; this component adds NO shadow/elevation styles.
+// assets/images/nav/pill.png — from the master "assets/images/buttons pill.png".
+// The asset carries its own shadow and framing; this component adds NO
+// shadow/elevation styles.
+//
+// Sizing is computed in absolute points from the window width — no percentage
+// widths, no aspectRatio, no flex on the tabs. Every tab gets an exact equal
+// share of the pill's inner area, so the row can never overflow the artwork
+// (which is what clipped the "You" tab on device: %-width + aspectRatio on
+// the box with flex-sized, font-scaled tabs let the row outgrow the frame).
 const PILL = require('../../assets/images/nav/pill.png');
-const PILL_ASPECT = 1500 / 322;
 
 const TABS = [
   { label: 'Home',   icon: require('../../assets/images/nav/home.png'),    route: '/'        },
@@ -20,14 +27,19 @@ export function BottomNavBar() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { width: winW } = useWindowDimensions();
+
+  const pillW = Math.min(Math.round(winW * 0.95), 600);
+  const pillH = 104;
+  // The rounded gold caps occupy roughly this much of each end of the artwork
+  const sidePad = Math.round(pillW * 0.09);
+  const tabW = Math.floor((pillW - sidePad * 2) / 4);
 
   return (
-    <View style={[styles.wrap, { paddingBottom: insets.bottom + 10 }]}>
-      {/* Box matches the artwork's aspect ratio exactly, so stretch fills
-          it with no distortion of the gold frame. */}
+    <View style={[styles.wrap, { paddingBottom: insets.bottom + 12 }]}>
       <ImageBackground
         source={PILL}
-        style={styles.pill}
+        style={[styles.pill, { width: pillW, height: pillH, paddingHorizontal: sidePad }]}
         imageStyle={styles.pillImage}
         resizeMode="stretch"
       >
@@ -39,7 +51,7 @@ export function BottomNavBar() {
           return (
             <TouchableOpacity
               key={tab.route}
-              style={styles.tab}
+              style={[styles.tab, { width: tabW }]}
               onPress={() => router.push(tab.route)}
               activeOpacity={0.7}
             >
@@ -51,7 +63,13 @@ export function BottomNavBar() {
                   resizeMode="contain"
                 />
               </View>
-              <Text style={[styles.label, active && styles.labelActive]}>{tab.label}</Text>
+              <Text
+                style={[styles.label, active && styles.labelActive]}
+                numberOfLines={1}
+                maxFontSizeMultiplier={1.15}
+              >
+                {tab.label}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -66,29 +84,23 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   pill: {
-    width: '92%',
-    maxWidth: 560,
-    aspectRatio: PILL_ASPECT,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-evenly',
-    // Keeps all four tabs inside the leather area of the frame; the
-    // rounded gold ends eat roughly this much on each side.
-    paddingHorizontal: 30,
+    justifyContent: 'center',
   },
   pillImage: { width: '100%', height: '100%' },
-  tab: { flex: 1, alignItems: 'center', gap: 2 },
+  tab: { alignItems: 'center', gap: 3 },
   iconWrap: {
-    width: 44, height: 38,
+    width: 52, height: 44,
     alignItems: 'center', justifyContent: 'center',
   },
   activeRing: {
     position: 'absolute',
-    width: 42, height: 42, borderRadius: 21,
+    width: 48, height: 48, borderRadius: 24,
     backgroundColor: 'rgba(212, 175, 55, 0.20)',
   },
-  icon: { width: 34, height: 28 },
+  icon: { width: 39, height: 32 },
   iconActive: { transform: [{ scale: 1.2 }] },
-  label:       { fontSize: 9, color: 'rgba(212, 175, 55, 0.55)', letterSpacing: 1 },
+  label:       { fontSize: 10, color: 'rgba(212, 175, 55, 0.55)', letterSpacing: 1 },
   labelActive: { color: '#D4AF37' },
 });
