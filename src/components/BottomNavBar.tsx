@@ -28,14 +28,22 @@ export function BottomNavBar() {
 
   const pillW = Math.min(Math.round(winW * 0.95), 600);
   const pillH = 104;
-  // The rounded gold end caps occupy roughly this much of each end
-  const sidePad = Math.round(pillW * 0.09);
+  // Measured from the artwork (2026-08-31 export, 1500x326): the gem frame
+  // band is 22.4% of the height at the top, 18.4% at the bottom, and the
+  // rounded end caps intrude ~11% of the width per side at content height.
+  const sidePad = Math.round(pillW * 0.11);
+  const padTop = Math.round(pillH * 0.22);
+  const padBottom = Math.round(pillH * 0.18);
 
   return (
     <View style={[styles.wrap, { paddingBottom: insets.bottom + 12 }]}>
       <ImageBackground
         source={PILL}
-        style={[styles.pill, { width: pillW, height: pillH, paddingHorizontal: sidePad }]}
+        style={[styles.pill, {
+          width: pillW, height: pillH,
+          paddingHorizontal: sidePad,
+          paddingTop: padTop, paddingBottom: padBottom,
+        }]}
         imageStyle={styles.pillImage}
         resizeMode="stretch"
         onLayout={e => {
@@ -107,15 +115,15 @@ const styles = StyleSheet.create({
   },
   tab: { alignItems: 'center', gap: 3, flexShrink: 1 },
   iconWrap: {
-    width: 52, height: 44,
+    width: 50, height: 40,
     alignItems: 'center', justifyContent: 'center',
   },
   activeRing: {
     position: 'absolute',
-    width: 48, height: 48, borderRadius: 24,
+    width: 44, height: 44, borderRadius: 22,
     backgroundColor: 'rgba(212, 175, 55, 0.20)',
   },
-  icon: { width: 39, height: 32 },
+  icon: { width: 36, height: 30 },
   iconActive: { transform: [{ scale: 1.2 }] },
   label:       { fontSize: 10, color: 'rgba(212, 175, 55, 0.55)', letterSpacing: 1 },
   labelActive: { color: '#D4AF37' },
