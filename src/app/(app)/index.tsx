@@ -205,14 +205,19 @@ export default function HomeScreen() {
                   imageStyle={styles.hubBtnImage}
                   resizeMode="stretch"
                 >
-                  <Ionicons name={btn.icon} size={34} color="#D4AF37" />
-                  <Text
-                    style={styles.hubLabel}
-                    numberOfLines={1}
-                    maxFontSizeMultiplier={1.15}
-                  >
-                    {btn.label}
-                  </Text>
+                  {/* Inner content box: padding equals the gem frame border
+                      thickness so the icon+label column centers within the
+                      stitched leather area, never on the frame. */}
+                  <View style={styles.hubInner}>
+                    <Ionicons name={btn.icon} size={34} color="#D4AF37" />
+                    <Text
+                      style={styles.hubLabel}
+                      numberOfLines={1}
+                      maxFontSizeMultiplier={1.15}
+                    >
+                      {btn.label}
+                    </Text>
+                  </View>
                 </ImageBackground>
               </TouchableOpacity>
             ))}
@@ -255,14 +260,14 @@ const styles = StyleSheet.create({
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 22 },
   hubBtnTouch: { width: '47.5%' },
-  hubBtn: {
-    height: 168,
-    // The gem frame occupies ~13% of each edge of the artwork — keep the
-    // icon + label group well inside the stitched leather area.
-    padding: 26,
-    alignItems: 'center', justifyContent: 'center', gap: 8,
-  },
+  hubBtn: { height: 168 },
   hubBtnImage: { width: '100%', height: '100%' },
+  hubInner: {
+    flex: 1,
+    paddingTop: 18, paddingBottom: 18, paddingHorizontal: 22,
+    alignItems: 'center', justifyContent: 'center',
+    flexDirection: 'column', gap: 8,
+  },
   hubLabel: {
     color: Brand.gold, fontSize: 11, fontWeight: '700',
     letterSpacing: 1.5, fontFamily: 'ui-serif',

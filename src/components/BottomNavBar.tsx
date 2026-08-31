@@ -6,14 +6,11 @@ import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // assets/images/nav/pill.png — from the master "assets/images/buttons pill.png".
-// The asset carries its own shadow and framing; this component adds NO
-// shadow/elevation styles.
+// The asset carries its own shadow and framing; no shadow/elevation styles here.
 //
-// Sizing is computed in absolute points from the window width — no percentage
-// widths, no aspectRatio, no flex on the tabs. Every tab gets an exact equal
-// share of the pill's inner area, so the row can never overflow the artwork
-// (which is what clipped the "You" tab on device: %-width + aspectRatio on
-// the box with flex-sized, font-scaled tabs let the row outgrow the frame).
+// Structure: the ImageBackground container owns the frame-safe padding; the
+// tab row is a separate inner View at width:'100%', so it is CONSTRAINED to
+// the container's content box and can never outgrow the artwork.
 const PILL = require('../../assets/images/nav/pill.png');
 
 const TABS = [
@@ -31,9 +28,8 @@ export function BottomNavBar() {
 
   const pillW = Math.min(Math.round(winW * 0.95), 600);
   const pillH = 104;
-  // The rounded gold caps occupy roughly this much of each end of the artwork
+  // The rounded gold end caps occupy roughly this much of each end
   const sidePad = Math.round(pillW * 0.09);
-  const tabW = Math.floor((pillW - sidePad * 2) / 4);
 
   return (
     <View style={[styles.wrap, { paddingBottom: insets.bottom + 12 }]}>
@@ -42,37 +38,51 @@ export function BottomNavBar() {
         style={[styles.pill, { width: pillW, height: pillH, paddingHorizontal: sidePad }]}
         imageStyle={styles.pillImage}
         resizeMode="stretch"
+        onLayout={e => {
+          if (__DEV__) {
+            console.log(`[nav-debug] pill container width: ${Math.round(e.nativeEvent.layout.width)}`);
+          }
+        }}
       >
-        {TABS.map(tab => {
-          const active =
-            tab.route === '/'
-              ? pathname === '/' || pathname === ''
-              : pathname === tab.route || pathname.startsWith(tab.route + '/');
-          return (
-            <TouchableOpacity
-              key={tab.route}
-              style={[styles.tab, { width: tabW }]}
-              onPress={() => router.push(tab.route)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.iconWrap}>
-                {active && <View style={styles.activeRing} />}
-                <Image
-                  source={tab.icon}
-                  style={[styles.icon, active && styles.iconActive]}
-                  resizeMode="contain"
-                />
-              </View>
-              <Text
-                style={[styles.label, active && styles.labelActive]}
-                numberOfLines={1}
-                maxFontSizeMultiplier={1.15}
+        <View
+          style={styles.tabRow}
+          onLayout={e => {
+            if (__DEV__) {
+              console.log(`[nav-debug] tab row width: ${Math.round(e.nativeEvent.layout.width)}`);
+            }
+          }}
+        >
+          {TABS.map(tab => {
+            const active =
+              tab.route === '/'
+                ? pathname === '/' || pathname === ''
+                : pathname === tab.route || pathname.startsWith(tab.route + '/');
+            return (
+              <TouchableOpacity
+                key={tab.route}
+                style={styles.tab}
+                onPress={() => router.push(tab.route)}
+                activeOpacity={0.7}
               >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+                <View style={styles.iconWrap}>
+                  {active && <View style={styles.activeRing} />}
+                  <Image
+                    source={tab.icon}
+                    style={[styles.icon, active && styles.iconActive]}
+                    resizeMode="contain"
+                  />
+                </View>
+                <Text
+                  style={[styles.label, active && styles.labelActive]}
+                  numberOfLines={1}
+                  maxFontSizeMultiplier={1.15}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </ImageBackground>
     </View>
   );
@@ -84,12 +94,18 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   pill: {
-    flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
   },
   pillImage: { width: '100%', height: '100%' },
-  tab: { alignItems: 'center', gap: 3 },
+  // Constrained to the container's content box (inside the end-cap padding)
+  tabRow: {
+    width: '100%',
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+  },
+  tab: { alignItems: 'center', gap: 3, flexShrink: 1 },
   iconWrap: {
     width: 52, height: 44,
     alignItems: 'center', justifyContent: 'center',
