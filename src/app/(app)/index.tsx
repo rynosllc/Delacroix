@@ -15,11 +15,12 @@ const BG = require('../../../assets/background.png');
 const WORDMARK = require('../../../assets/images/ui/wordmark.png');
 const SQUARE = require('../../../assets/images/ui/square.png');
 
+// Center plates carry the icon AND label in the metal artwork
 const HUB_BUTTONS = [
-  { label: 'YOUR PEOPLE', icon: 'people-outline', route: '/people'         },
-  { label: 'SEND A GIFT', icon: 'gift-outline',   route: '/send/recipient' },
-  { label: 'YOUR GIFTS',  icon: 'list-outline',   route: '/gifts'          },
-  { label: 'YOU',         icon: 'person-outline', route: '/profile'        },
+  { label: 'YOUR PEOPLE', plate: require('../../../assets/images/ui/hub-people.png'),  route: '/people'         },
+  { label: 'SEND A GIFT', plate: require('../../../assets/images/ui/hub-gift.png'),    route: '/send/recipient' },
+  { label: 'YOUR GIFTS',  plate: require('../../../assets/images/ui/hub-list.png'),    route: '/gifts'          },
+  { label: 'YOU',         plate: require('../../../assets/images/ui/hub-profile.png'), route: '/profile'        },
 ] as const;
 
 interface UpcomingContact { id: string; display_name: string; days: number }
@@ -206,17 +207,15 @@ export default function HomeScreen() {
                   resizeMode="stretch"
                 >
                   {/* Inner content box: padding equals the gem frame border
-                      thickness so the icon+label column centers within the
-                      stitched leather area, never on the frame. */}
+                      thickness; the metal plate (icon + label in one artwork)
+                      scales to fit inside the stitched leather area. */}
                   <View style={styles.hubInner}>
-                    <Ionicons name={btn.icon} size={34} color="#D4AF37" />
-                    <Text
-                      style={styles.hubLabel}
-                      numberOfLines={1}
-                      maxFontSizeMultiplier={1.15}
-                    >
-                      {btn.label}
-                    </Text>
+                    <Image
+                      source={btn.plate}
+                      style={styles.hubPlate}
+                      resizeMode="contain"
+                      accessibilityLabel={btn.label}
+                    />
                   </View>
                 </ImageBackground>
               </TouchableOpacity>
@@ -264,12 +263,8 @@ const styles = StyleSheet.create({
   hubBtnImage: { width: '100%', height: '100%' },
   hubInner: {
     flex: 1,
-    paddingTop: 18, paddingBottom: 18, paddingHorizontal: 22,
+    paddingTop: 24, paddingBottom: 24, paddingHorizontal: 28,
     alignItems: 'center', justifyContent: 'center',
-    flexDirection: 'column', gap: 8,
   },
-  hubLabel: {
-    color: Brand.gold, fontSize: 11, fontWeight: '700',
-    letterSpacing: 1.5, fontFamily: 'ui-serif',
-  },
+  hubPlate: { width: '100%', height: '100%' },
 });
