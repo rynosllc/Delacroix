@@ -13,14 +13,13 @@ import { BottomNavBar } from '@/components/BottomNavBar';
 
 const BG = require('../../../assets/background.png');
 const WORDMARK = require('../../../assets/images/ui/wordmark.png');
-const SQUARE = require('../../../assets/images/ui/square.png');
 
-// Center plates carry the icon AND label in the metal artwork
+// Complete baked buttons: frame + leather + icon + label in one image
 const HUB_BUTTONS = [
-  { label: 'YOUR PEOPLE', plate: require('../../../assets/images/ui/hub-people.png'),  route: '/people'         },
-  { label: 'SEND A GIFT', plate: require('../../../assets/images/ui/hub-gift.png'),    route: '/send/recipient' },
-  { label: 'YOUR GIFTS',  plate: require('../../../assets/images/ui/hub-list.png'),    route: '/gifts'          },
-  { label: 'YOU',         plate: require('../../../assets/images/ui/hub-profile.png'), route: '/profile'        },
+  { label: 'YOUR PEOPLE', image: require('../../../assets/images/ui/btn-your-people.png'), route: '/people'         },
+  { label: 'SEND A GIFT', image: require('../../../assets/images/ui/btn-send-a-gift.png'), route: '/send/recipient' },
+  { label: 'YOUR GIFTS',  image: require('../../../assets/images/ui/btn-your-gifts.png'),  route: '/gifts'          },
+  { label: 'YOU',         image: require('../../../assets/images/ui/btn-you.png'),         route: '/profile'        },
 ] as const;
 
 interface UpcomingContact { id: string; display_name: string; days: number }
@@ -191,33 +190,21 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* ── 2×2 hub grid ── */}
+          {/* ── 2×2 hub grid — complete baked button images ── */}
           <View style={styles.grid}>
             {HUB_BUTTONS.map(btn => (
               <TouchableOpacity
                 key={btn.route}
                 onPress={() => router.push(btn.route)}
                 activeOpacity={0.7}
-                style={styles.hubBtnTouch}
+                style={styles.hubBtn}
               >
-                <ImageBackground
-                  source={SQUARE}
-                  style={styles.hubBtn}
-                  imageStyle={styles.hubBtnImage}
-                  resizeMode="stretch"
-                >
-                  {/* Inner content box: padding equals the gem frame border
-                      thickness; the metal plate (icon + label in one artwork)
-                      scales to fit inside the stitched leather area. */}
-                  <View style={styles.hubInner}>
-                    <Image
-                      source={btn.plate}
-                      style={styles.hubPlate}
-                      resizeMode="contain"
-                      accessibilityLabel={btn.label}
-                    />
-                  </View>
-                </ImageBackground>
+                <Image
+                  source={btn.image}
+                  style={styles.hubBtnImage}
+                  resizeMode="contain"
+                  accessibilityLabel={btn.label}
+                />
               </TouchableOpacity>
             ))}
           </View>
@@ -257,14 +244,7 @@ const styles = StyleSheet.create({
   divider:       { width: 48, height: 1, backgroundColor: 'rgba(212,175,55,0.4)' },
   dividerHeart:  { position: 'absolute' },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 22 },
-  hubBtnTouch: { width: '47.5%' },
-  hubBtn: { height: 168 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 22, justifyContent: 'center' },
+  hubBtn: { width: '47%', height: 160 },
   hubBtnImage: { width: '100%', height: '100%' },
-  hubInner: {
-    flex: 1,
-    paddingTop: 24, paddingBottom: 24, paddingHorizontal: 28,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  hubPlate: { width: '100%', height: '100%' },
 });
