@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ImageBackground,
-  ActivityIndicator, Animated, Platform, TextInput, Alert,
+  ActivityIndicator, Animated, Platform, TextInput, Alert, Linking,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
 
 const BG = require('../../../assets/background.png');
+
+// Shown to web visitors only AFTER they've claimed — the gift itself is
+// never gated behind an app download.
+const APP_STORE_URL = 'https://apps.apple.com/app/id6785289391';
 
 const OCCASION_LABELS: Record<string, string> = {
   birthday:     'a birthday',
@@ -250,6 +254,21 @@ export default function ClaimScreen() {
                   Your thank-you is on its way to {gift.sender_name}. ✓
                 </Text>
               )}
+
+              {gift.status === 'claimed' && Platform.OS === 'web' && (
+                <View style={styles.downloadBlock}>
+                  <Text style={styles.downloadHint}>
+                    Send gifts of your own, from the heart.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.downloadBtn}
+                    onPress={() => Linking.openURL(APP_STORE_URL)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.downloadBtnText}>Download DeLacroix</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </Animated.View>
           )}
 
@@ -328,6 +347,19 @@ const styles = StyleSheet.create({
     color: Brand.cream, minHeight: 90,
   },
   thanksDone: { color: Brand.muted, fontSize: 14, fontStyle: 'italic', marginTop: 8 },
+
+  downloadBlock: {
+    width: '100%', alignItems: 'center', gap: 10,
+    marginTop: 20, paddingTop: 18,
+    borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.25)',
+  },
+  downloadHint: { color: Brand.muted, fontSize: 13, fontStyle: 'italic' },
+  downloadBtn: {
+    height: 48, width: '100%', maxWidth: 300,
+    borderWidth: 1.5, borderColor: '#D4AF37', borderRadius: 12,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  downloadBtnText: { color: Brand.gold, fontSize: 14, fontWeight: '600', letterSpacing: 1 },
 
   notFoundTitle: { color: Brand.cream, fontSize: 20, fontFamily: 'ui-serif', textAlign: 'center' },
   notFoundSub:   { color: Brand.muted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
