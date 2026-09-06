@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   SafeAreaView, ActivityIndicator, ImageBackground, TextInput, Image,
@@ -25,6 +25,17 @@ export default function RecipientStep() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
+
+  // "Send Gift" shortcuts (home moment card, contact profile) preselect the
+  // recipient — skip straight to the occasion step.
+  useEffect(() => {
+    if (params.prefilledId && params.prefilledName) {
+      router.replace({
+        pathname: '/send/occasion',
+        params: { recipientId: params.prefilledId, recipientName: params.prefilledName },
+      });
+    }
+  }, [params.prefilledId]);
 
   // Refetch every time the screen gains focus so a just-added contact shows up
   useFocusEffect(

@@ -226,6 +226,9 @@ export default function ContactScreen() {
 
           <Field label="Email" value={email} onChangeText={setEmail} placeholder="their@email.com" keyboardType="email-address" autoCapitalize="none" />
           <Field label="Phone" value={phoneDisplay} onChangeText={handlePhoneChange} placeholder="(555) 000-0000" keyboardType="phone-pad" />
+          <Text style={styles.consentNote}>
+            They'll receive a text or email when you send them a gift.
+          </Text>
           <Field label="Relation" value={relation} onChangeText={setRelation} placeholder="mom, friend, coworker…" autoCapitalize="none" />
 
           {/* Birthday */}
@@ -408,6 +411,10 @@ const styles = StyleSheet.create({
   bdYear: { width: 80, textAlign: 'center', paddingHorizontal: 8 },
   bdSep: { color: Brand.muted, fontSize: 20, marginBottom: 2 },
   clearText: { color: Brand.gold, fontSize: 13 },
+  consentNote: {
+    color: Brand.muted, fontSize: 11, fontStyle: 'italic',
+    marginTop: -6, marginBottom: 2,
+  },
   saveButton: {
     backgroundColor: Brand.gold, borderRadius: 10, paddingVertical: 15,
     alignItems: 'center', marginTop: 8,

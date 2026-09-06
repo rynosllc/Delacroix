@@ -221,9 +221,14 @@ async function handleAction(req: Request): Promise<Response> {
     if (!updated || updated.length === 0) {
       return json({ error: "This gift can no longer be claimed" }, 409);
     }
-    // In-app claims carry the recipient's user JWT — link their account
+    // In-app claims carry the recipient's user JWT — link their account so
+    // the gift shows in their RECEIVED tab and the contact links up.
     const userId = await resolveAuthedUserId(req);
     if (userId) {
+      await supabase
+        .from("gifts")
+        .update({ claimed_by: userId })
+        .eq("claim_token", token);
       await supabase
         .from("recipient_contacts")
         .update({ claimed_user_id: userId })
