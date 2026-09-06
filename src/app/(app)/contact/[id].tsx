@@ -235,7 +235,7 @@ export default function ContactScreen() {
           <View style={styles.fieldWrapper}>
             <View style={styles.birthdayRow}>
               <Text style={styles.fieldLabel}>Birthday</Text>
-              {(bdMonth || bdDay || bdYear) && (
+              {!!(bdMonth || bdDay || bdYear) && (
                 <TouchableOpacity onPress={() => { setBdMonth(''); setBdDay(''); setBdYear(''); }}>
                   <Text style={styles.clearText}>Clear</Text>
                 </TouchableOpacity>
