@@ -5,7 +5,9 @@ import {
   ImageBackground,
 } from 'react-native';
 import { Link } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/context/auth';
+import { supabase } from '@/lib/supabase';
 
 export default function SignUpScreen() {
   const { signUp } = useAuth();
@@ -15,7 +17,10 @@ export default function SignUpScreen() {
   const [loading, setLoading] = useState(false);
 
   async function handleSignUp() {
-    if (!displayName || !email || !password) return;
+    if (!displayName.trim() || !email.trim() || !password) {
+      Alert.alert('Missing details', 'Please enter your name, email, and a password.');
+      return;
+    }
     if (password.length < 8) {
       Alert.alert('Password too short', 'Password must be at least 8 characters.');
       return;
@@ -23,7 +28,16 @@ export default function SignUpScreen() {
     setLoading(true);
     const { error } = await signUp(email.trim().toLowerCase(), password, displayName.trim());
     setLoading(false);
-    if (error) Alert.alert('Sign up failed', error);
+    if (error) {
+      Alert.alert('Sign up failed', error);
+      return;
+    }
+    // If email confirmation is enabled there's no session yet — tell the
+    // user what happens next instead of leaving them on the form.
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) {
+      Alert.alert('Check your email', 'We sent a confirmation link. Tap it, then sign in.');
+    }
   }
 
   return (
@@ -80,6 +94,24 @@ export default function SignUpScreen() {
               : <Text style={styles.buttonText}>Create Account</Text>
             }
           </TouchableOpacity>
+
+          <Text style={styles.legalNote}>
+            By creating an account you agree to our{' '}
+            <Text
+              style={styles.legalLink}
+              onPress={() => WebBrowser.openBrowserAsync('https://delacroix.expo.app/terms.html')}
+            >
+              Terms
+            </Text>
+            {' '}and{' '}
+            <Text
+              style={styles.legalLink}
+              onPress={() => WebBrowser.openBrowserAsync('https://delacroix.expo.app/privacy.html')}
+            >
+              Privacy Policy
+            </Text>
+            .
+          </Text>
         </View>
 
         <Link href="/(auth)/login" asChild>
@@ -160,5 +192,13 @@ const styles = StyleSheet.create({
   switchTextBold: {
     color: '#C9A84C',
     fontWeight: '600',
+  },
+  legalNote: {
+    color: '#C4B99F',
+    fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 14,
+  },
+  legalLink: {
+    color: '#D4AF37',
+    textDecorationLine: 'underline',
   },
 });

@@ -7,6 +7,7 @@ import {
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/context/auth';
+import { supabase } from '@/lib/supabase';
 import { GoldGradient } from '@/components/GoldGradient';
 
 const BG = require('../../../assets/background.png');
@@ -26,11 +27,33 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
 
   async function handleSignIn() {
-    if (!email || !password) return;
+    if (!email.trim() || !password) {
+      Alert.alert('Missing details', 'Please enter your email and password.');
+      return;
+    }
     setLoading(true);
     const { error } = await signIn(email.trim().toLowerCase(), password);
     setLoading(false);
     if (error) Alert.alert('Sign in failed', error);
+  }
+
+  async function handleForgotPassword() {
+    const addr = email.trim().toLowerCase();
+    if (!addr) {
+      Alert.alert('Enter your email', 'Type your email above, then tap "Forgot password?" again.');
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(addr, {
+      redirectTo: 'https://delacroix.expo.app/reset-password',
+    });
+    if (error) {
+      Alert.alert('Could not send reset email', error.message);
+      return;
+    }
+    Alert.alert(
+      'Check your email',
+      `If an account exists for ${addr}, a password reset link is on its way.`,
+    );
   }
 
   return (
@@ -112,21 +135,17 @@ export default function LoginScreen() {
             </GoldGradient>
           </TouchableOpacity>
 
+          {/* Forgot password */}
+          <TouchableOpacity onPress={handleForgotPassword} activeOpacity={0.7} style={styles.forgotBtn}>
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </TouchableOpacity>
+
           {/* OR divider */}
           <View style={styles.orRow}>
             <View style={styles.orLine} />
             <Text style={styles.orText}>OR</Text>
             <View style={styles.orLine} />
           </View>
-
-          {/* Fingerprint — placeholder. REPLACE WITH CUSTOM ASSET LATER */}
-          <TouchableOpacity
-            style={styles.fingerprintBtn}
-            onPress={() => Alert.alert('Coming soon', 'Biometric sign-in is on the way.')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="finger-print" size={30} color={GOLD} />
-          </TouchableOpacity>
 
           {/* CREATE AN ACCOUNT — REPLACE WITH CUSTOM ASSET LATER */}
           <Link href="/(auth)/signup" asChild>
@@ -199,12 +218,8 @@ const styles = StyleSheet.create({
   orLine: { flex: 1, height: 1, backgroundColor: GOLD_FAINT },
   orText: { color: GOLD_SOFT, fontSize: 13, letterSpacing: 2 },
 
-  fingerprintBtn: {
-    width: 62, height: 62, borderRadius: 31,
-    borderWidth: 1.5, borderColor: GOLD,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 26,
-  },
+  forgotBtn:  { paddingVertical: 12 },
+  forgotText: { color: GOLD, fontSize: 14, textDecorationLine: 'underline' },
 
   createBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
