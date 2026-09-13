@@ -1,0 +1,9 @@
+project_id = "isiibpadgckrycclkzkm"
+
+[auth]
+site_url = "https://delacroix.expo.app"
+additional_redirect_urls = [
+  "https://delacroix.expo.app/reset-password",
+  "https://delacroix.expo.app/**",
+  "delacroix://**",
+]
