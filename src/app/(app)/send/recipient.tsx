@@ -21,7 +21,9 @@ function initials(name: string) {
 
 export default function RecipientStep() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ prefilledId?: string; prefilledName?: string }>();
+  const params = useLocalSearchParams<{
+    prefilledId?: string; prefilledName?: string; returnTo?: string;
+  }>();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState('');
@@ -53,6 +55,14 @@ export default function RecipientStep() {
     : contacts;
 
   function select(contact: Contact) {
+    const { returnTo, prefilledId, prefilledName, ...rest } = params;
+    if (returnTo === 'review') {
+      router.replace({
+        pathname: '/send/review',
+        params: { ...rest, recipientId: contact.id, recipientName: contact.display_name },
+      });
+      return;
+    }
     router.push({
       pathname: '/send/occasion',
       params: { recipientId: contact.id, recipientName: contact.display_name },
@@ -65,7 +75,7 @@ export default function RecipientStep() {
         <SendFlowHeader
           step={1}
           title="Who are you gifting?"
-          onBack={() => router.push('/')}
+          onBack={() => router.back()}
         />
 
         <TextInput

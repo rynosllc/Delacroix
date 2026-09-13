@@ -12,10 +12,16 @@ export default function PhotoStep() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     recipientId: string; recipientName: string; occasion: string; message: string;
+    returnTo?: string;
   }>();
 
   function advance(photoUri: string) {
-    router.push({ pathname: '/send/gift', params: { ...params, photoUri } });
+    const { returnTo, ...rest } = params;
+    if (returnTo === 'review') {
+      router.replace({ pathname: '/send/review', params: { ...rest, photoUri } });
+      return;
+    }
+    router.push({ pathname: '/send/gift', params: { ...rest, photoUri } });
   }
 
   return (

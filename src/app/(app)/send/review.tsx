@@ -67,8 +67,11 @@ export default function ReviewStep() {
     ? params.message.slice(0, 80) + '…'
     : params.message;
 
+  // Edit swaps this screen for the step being edited; that step's Next swaps
+  // back to review with merged params — the stack never grows, and Back from
+  // review always returns to the normal flow.
   function editStep(pathname: string) {
-    router.push({ pathname: pathname as any, params });
+    router.replace({ pathname: pathname as any, params: { ...params, returnTo: 'review' } });
   }
 
   async function handleSend() {

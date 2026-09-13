@@ -22,10 +22,11 @@ export default function MessageStep() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     recipientId: string; recipientName: string; occasion: string;
+    message?: string; returnTo?: string;
   }>();
 
   const [tab, setTab] = useState<'self' | 'ai'>('self');
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(params.message ?? '');
   const [aiAnswers, setAiAnswers] = useState<Record<string, string>>({});
   const [generated, setGenerated] = useState('');
 
@@ -39,9 +40,17 @@ export default function MessageStep() {
     const finalMsg = message.trim() || generated.trim();
     const messageSource =
       generated && finalMsg === generated.trim() ? 'ai_generated' : 'manual';
+    const { returnTo, ...rest } = params;
+    if (returnTo === 'review') {
+      router.replace({
+        pathname: '/send/review',
+        params: { ...rest, message: finalMsg, messageSource },
+      });
+      return;
+    }
     router.push({
       pathname: '/send/photo',
-      params: { ...params, message: finalMsg, messageSource },
+      params: { ...rest, message: finalMsg, messageSource },
     });
   }
 

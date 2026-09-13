@@ -19,14 +19,21 @@ const OCCASIONS = [
 
 export default function OccasionStep() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ recipientId: string; recipientName: string }>();
-  const [selected, setSelected] = useState<string | null>(null);
+  const params = useLocalSearchParams<{
+    recipientId: string; recipientName: string; occasion?: string; returnTo?: string;
+  }>();
+  const [selected, setSelected] = useState<string | null>(params.occasion ?? null);
 
   function onNext() {
     if (!selected) return;
+    const { returnTo, ...rest } = params;
+    if (returnTo === 'review') {
+      router.replace({ pathname: '/send/review', params: { ...rest, occasion: selected } });
+      return;
+    }
     router.push({
       pathname: '/send/message',
-      params: { ...params, occasion: selected },
+      params: { ...rest, occasion: selected },
     });
   }
 

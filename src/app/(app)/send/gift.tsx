@@ -22,9 +22,10 @@ export default function GiftAmountStep() {
   const params = useLocalSearchParams<{
     recipientId: string; recipientName: string;
     occasion: string; message: string; photoUri: string;
+    giftAmount?: string; returnTo?: string;
   }>();
 
-  const [amountStr, setAmountStr] = useState('');
+  const [amountStr, setAmountStr] = useState(params.giftAmount ?? '');
   const amount  = parseFloat(amountStr) || 0;
   const { fee, total } = calcFee(amount);
   const valid   = amount >= 5;
@@ -44,7 +45,12 @@ export default function GiftAmountStep() {
   }, [lucky]);
 
   function advance(withAmount: string) {
-    router.push({ pathname: '/send/review', params: { ...params, giftAmount: withAmount } });
+    const { returnTo, ...rest } = params;
+    if (returnTo === 'review') {
+      router.replace({ pathname: '/send/review', params: { ...rest, giftAmount: withAmount } });
+      return;
+    }
+    router.push({ pathname: '/send/review', params: { ...rest, giftAmount: withAmount } });
   }
 
   return (
