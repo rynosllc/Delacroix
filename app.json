@@ -51,7 +51,8 @@
           "savePhotosPermission": "DeLacroix saves screenshots to your photo library.",
           "isAccessMediaLocationEnabled": false
         }
-      ]
+      ],
+      "@stripe/stripe-react-native"
     ],
     "experiments": {
       "typedRoutes": true,

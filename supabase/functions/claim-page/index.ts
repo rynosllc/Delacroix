@@ -8,12 +8,34 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //   GET  ?token=<uuid>                      -> HTML page for gift status
 //   POST { token, action, thank_you_message?, }  -> JSON
 //        action: "claim" | "decline" | "thank_you"
+//               | "setup_payout" | "complete_payout"
 //        An optional user Bearer JWT (in-app claim) links claimed_user_id.
+//
+// Cash payouts use Stripe Connect Express: setup_payout creates (or reuses)
+// the recipient's Express account and returns Stripe's hosted onboarding
+// URL; complete_payout transfers the gift amount once onboarding finishes.
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
+
+const STRIPE_KEY = Deno.env.get("STRIPE_SECRET_KEY_TEST") || Deno.env.get("STRIPE_SECRET_KEY") || "";
+const CLAIM_PAGE_URL = "https://delacroix.expo.app/claim/";
+
+async function stripeCall(method: "GET" | "POST", path: string, body?: Record<string, string>): Promise<any> {
+  const res = await fetch(`https://api.stripe.com/v1/${path}`, {
+    method,
+    headers: {
+      Authorization: `Bearer ${STRIPE_KEY}`,
+      ...(body ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+    },
+    body: body ? new URLSearchParams(body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message ?? `Stripe ${res.status}`);
+  return data;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -45,7 +67,7 @@ async function fetchGift(token: string) {
   const { data, error } = await supabase
     .from("gifts")
     .select(
-      "id, template_id, message_text, cash_amount, status, thank_you_message, users!gifts_sender_id_fkey(display_name)",
+      "id, template_id, message_text, cash_amount, status, thank_you_message, payment_status, payout_status, recipient_contact_id, users!gifts_sender_id_fkey(display_name)",
     )
     .eq("claim_token", token)
     .single();
@@ -111,10 +133,23 @@ function simplePage(title: string, headline: string, sub: string): Response {
   return page(title, `<h1>${esc(headline)}</h1><p class="subtle">${esc(sub)}</p>`);
 }
 
-function revealPage(token: string, senderName: string, occasion: string, message: string, cashAmount: number | null, alreadyClaimed: boolean, thankYou: string | null): Response {
+function revealPage(
+  token: string, senderName: string, occasion: string, message: string,
+  cashAmount: number | null, alreadyClaimed: boolean, thankYou: string | null,
+  payout?: { available: boolean; status: string; returning: boolean },
+): Response {
   const phrase = OCCASION_PHRASES[occasion] ?? "a special moment";
   const cashHtml = cashAmount
     ? `<p class="cash">They also sent you <b>$${Number(cashAmount).toFixed(2)}</b></p>`
+    : "";
+  const cashStr = cashAmount ? Number(cashAmount).toFixed(2) : "0";
+  const payoutHtml = cashAmount && alreadyClaimed && payout?.available
+    ? (payout.status === "paid"
+      ? `<p class="subtle" style="margin-top:14px">$${cashStr} is on its way to your bank. ✓</p>`
+      : `<div id="payoutBlock">
+           <button class="btn" id="payoutBtn">Get your $${cashStr}</button>
+           <p class="subtle" id="payoutNote" style="margin-top:10px">A quick, secure setup with Stripe — then the money is yours.</p>
+         </div>`)
     : "";
 
   // Three progressive sections: envelope -> message (+claim) -> thank-you
@@ -137,6 +172,8 @@ function revealPage(token: string, senderName: string, occasion: string, message
     <button class="btn" id="claimBtn">Claim your gift</button>
     <button class="btn secondary" id="declineBtn">Politely decline</button>
   </div>
+
+  ${payoutHtml}
 
   <div id="thanksBlock" class="${alreadyClaimed && !thankYou ? "" : "hidden"}">
     <p class="subtle" style="margin-top:18px">Send ${esc(senderName)} a thank-you?</p>
@@ -177,6 +214,23 @@ function revealPage(token: string, senderName: string, occasion: string, message
     post("decline").then(function () { window.location.reload(); })
       .catch(function (e) { alert(e.message); });
   });
+  var payoutBtn = document.getElementById("payoutBtn");
+  if (payoutBtn) payoutBtn.addEventListener("click", function () {
+    payoutBtn.disabled = true;
+    post("setup_payout").then(function (b) { window.location.href = b.url; })
+      .catch(function (e) { payoutBtn.disabled = false; alert(e.message); });
+  });
+  if (${payout?.returning ? "true" : "false"}) {
+    // Back from Stripe onboarding — complete the transfer
+    post("complete_payout").then(function () {
+      var blk = document.getElementById("payoutBlock");
+      if (blk) blk.innerHTML = '<p class="subtle" style="margin-top:14px">$${cashStr} is on its way to your bank. &#10003;</p>';
+    }).catch(function (e) {
+      var note = document.getElementById("payoutNote");
+      if (note) note.textContent = e.message + " — tap the button to try again.";
+      if (payoutBtn) payoutBtn.disabled = false;
+    });
+  }
   var thanksBtn = document.getElementById("thanksBtn");
   if (thanksBtn) thanksBtn.addEventListener("click", function () {
     var msg = document.getElementById("thanksText").value.trim();
@@ -251,6 +305,89 @@ async function handleAction(req: Request): Promise<Response> {
     return json({ ok: true, status: "declined" });
   }
 
+  if (action === "setup_payout") {
+    if (!STRIPE_KEY) return json({ error: "Payouts are not available yet" }, 503);
+    if (gift.status !== "claimed" || !gift.cash_amount) {
+      return json({ error: "This gift has no cash to collect" }, 409);
+    }
+    if (gift.payment_status !== "paid") return json({ error: "This gift's payment is still processing" }, 409);
+    if (gift.payout_status === "paid") return json({ error: "This gift was already paid out" }, 409);
+
+    const { data: contact } = await supabase
+      .from("recipient_contacts")
+      .select("id, stripe_recipient_id, email")
+      .eq("id", gift.recipient_contact_id)
+      .single();
+    if (!contact) return json({ error: "Recipient not found" }, 404);
+
+    let accountId = contact.stripe_recipient_id;
+    if (!accountId) {
+      const account = await stripeCall("POST", "accounts", {
+        type: "express",
+        country: "US",
+        ...(contact.email ? { email: contact.email } : {}),
+        "capabilities[transfers][requested]": "true",
+        "metadata[recipient_contact_id]": contact.id,
+      });
+      accountId = account.id;
+      await supabase
+        .from("recipient_contacts")
+        .update({ stripe_recipient_id: accountId })
+        .eq("id", contact.id);
+    }
+
+    const link = await stripeCall("POST", "account_links", {
+      account: accountId!,
+      refresh_url: `${CLAIM_PAGE_URL}${token}`,
+      return_url: `${CLAIM_PAGE_URL}${token}?payout=return`,
+      type: "account_onboarding",
+    });
+
+    await supabase
+      .from("gifts")
+      .update({ payout_status: "pending" })
+      .eq("claim_token", token)
+      .eq("payout_status", "none");
+
+    return json({ ok: true, url: link.url });
+  }
+
+  if (action === "complete_payout") {
+    if (!STRIPE_KEY) return json({ error: "Payouts are not available yet" }, 503);
+    if (gift.status !== "claimed" || !gift.cash_amount) {
+      return json({ error: "This gift has no cash to collect" }, 409);
+    }
+    if (gift.payment_status !== "paid") return json({ error: "This gift's payment is still processing" }, 409);
+    if (gift.payout_status === "paid") return json({ ok: true, already: true });
+
+    const { data: contact } = await supabase
+      .from("recipient_contacts")
+      .select("id, stripe_recipient_id")
+      .eq("id", gift.recipient_contact_id)
+      .single();
+    if (!contact?.stripe_recipient_id) return json({ error: "Payout account not set up yet" }, 409);
+
+    const account = await stripeCall("GET", `accounts/${contact.stripe_recipient_id}`);
+    if (account.capabilities?.transfers !== "active") {
+      return json({ pending: true, error: "Your payout account setup isn't finished yet" }, 409);
+    }
+
+    const transfer = await stripeCall("POST", "transfers", {
+      amount: String(Math.round(Number(gift.cash_amount) * 100)),
+      currency: "usd",
+      destination: contact.stripe_recipient_id,
+      "metadata[gift_id]": gift.id,
+    });
+
+    await supabase
+      .from("gifts")
+      .update({ payout_status: "paid", stripe_transfer_id: transfer.id })
+      .eq("claim_token", token)
+      .neq("payout_status", "paid");
+
+    return json({ ok: true, transfer_id: transfer.id });
+  }
+
   if (action === "thank_you") {
     const msg = body?.thank_you_message;
     if (!msg || typeof msg !== "string" || msg.trim().length === 0 || msg.length > 1000) {
@@ -280,7 +417,9 @@ serve(async (req) => {
   try {
     if (req.method === "POST") return await handleAction(req);
 
-    const token = new URL(req.url).searchParams.get("token") ?? "";
+    const reqUrl = new URL(req.url);
+    const token = reqUrl.searchParams.get("token") ?? "";
+    const payoutReturning = reqUrl.searchParams.get("payout") === "return";
     if (!UUID_RE.test(token)) {
       return simplePage("DeLacroix", "This gift link isn't valid", "The link may be incorrect or the gift may no longer be available.");
     }
@@ -302,7 +441,11 @@ serve(async (req) => {
       case "sent":
         return revealPage(token, sender, gift.template_id, gift.message_text, gift.cash_amount, false, null);
       case "claimed":
-        return revealPage(token, sender, gift.template_id, gift.message_text, gift.cash_amount, true, gift.thank_you_message);
+        return revealPage(token, sender, gift.template_id, gift.message_text, gift.cash_amount, true, gift.thank_you_message, {
+          available: !!STRIPE_KEY && gift.payment_status === "paid",
+          status: gift.payout_status ?? "none",
+          returning: payoutReturning,
+        });
       default:
         return simplePage("DeLacroix", "This gift link isn't valid", "The link may be incorrect or the gift may no longer be available.");
     }

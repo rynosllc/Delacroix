@@ -30,6 +30,8 @@ const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN") ?? "";
 const TWILIO_PHONE_NUMBER = Deno.env.get("TWILIO_PHONE_NUMBER") ?? "";
 const smsConfigured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER);
 
+const STRIPE_KEY = Deno.env.get("STRIPE_SECRET_KEY_TEST") || Deno.env.get("STRIPE_SECRET_KEY") || "";
+
 const EXPIRY_DAYS = 30;
 
 const OCCASION_PHRASES: Record<string, string> = {
@@ -44,6 +46,7 @@ interface DueGift {
   claim_token: string;
   template_id: string;
   cash_amount: number | null;
+  payment_status: string;
   recipient_contacts: { display_name: string; email: string | null; phone: string | null } | null;
   users: { display_name: string } | null;
 }
@@ -149,6 +152,9 @@ serve(async (_req) => {
     emailed: [] as string[],
     emailErrors: [] as string[],
     noChannel: [] as string[],
+    awaitingPayment: [] as string[],
+    refunded: [] as string[],
+    refundErrors: [] as string[],
     smsConfigured,
   };
 
@@ -162,17 +168,58 @@ serve(async (_req) => {
       .select("id");
     results.expired = expired?.length ?? 0;
 
+    // 1b. Refund paid gifts that were declined or expired — the sender gets
+    // their full charge (gift + fee) back. Guarded by payment_status so each
+    // gift is refunded exactly once.
+    if (STRIPE_KEY) {
+      const { data: refundable } = await supabase
+        .from("gifts")
+        .select("id, stripe_payment_intent_id")
+        .eq("payment_status", "paid")
+        .in("status", ["declined", "expired"]);
+      for (const g of refundable ?? []) {
+        if (!g.stripe_payment_intent_id) continue;
+        try {
+          const res = await fetch("https://api.stripe.com/v1/refunds", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${STRIPE_KEY}`,
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: new URLSearchParams({ payment_intent: g.stripe_payment_intent_id }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error?.message ?? `Stripe ${res.status}`);
+          await supabase
+            .from("gifts")
+            .update({ payment_status: "refunded" })
+            .eq("id", g.id)
+            .eq("payment_status", "paid");
+          results.refunded.push(g.id);
+        } catch (err) {
+          console.error(`refund failed for gift ${g.id}:`, err);
+          results.refundErrors.push(`${g.id}: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    }
+
     // 2. Find due scheduled gifts
     const { data: due, error: dueError } = await supabase
       .from("gifts")
       .select(
-        "id, claim_token, template_id, cash_amount, recipient_contacts(display_name, email, phone), users!gifts_sender_id_fkey(display_name)",
+        "id, claim_token, template_id, cash_amount, payment_status, recipient_contacts(display_name, email, phone), users!gifts_sender_id_fkey(display_name)",
       )
       .eq("status", "scheduled")
       .lte("scheduled_send_at", nowIso);
     if (dueError) throw dueError;
 
     for (const gift of (due ?? []) as unknown as DueGift[]) {
+      // Cash gifts deliver only once the payment is confirmed; an unpaid
+      // gift simply waits for the webhook and the next tick.
+      if (gift.cash_amount && gift.payment_status !== "paid") {
+        results.awaitingPayment.push(gift.id);
+        continue;
+      }
       const sentAt = new Date();
       const expiresAt = new Date(sentAt.getTime() + EXPIRY_DAYS * 24 * 60 * 60 * 1000);
 

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '@/context/auth';
+import { GiftStripeProvider } from '@/lib/payments';
 
 function RootNavigator() {
   const { session, loading } = useAuth();
@@ -11,10 +12,11 @@ function RootNavigator() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    // Recipient claim pages are public — no account required
-    const inClaimRoute = segments[0] === 'claim';
+    // Public routes — no account required: recipient claim pages, and the
+    // password-reset landing page (its session arrives via the URL hash).
+    const inPublicRoute = segments[0] === 'claim' || segments[0] === 'reset-password';
 
-    if (inClaimRoute) return;
+    if (inPublicRoute) return;
 
     if (!session && !inAuthGroup) {
       router.replace('/(auth)/login');
@@ -28,8 +30,10 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <RootNavigator />
-    </AuthProvider>
+    <GiftStripeProvider>
+      <AuthProvider>
+        <RootNavigator />
+      </AuthProvider>
+    </GiftStripeProvider>
   );
 }

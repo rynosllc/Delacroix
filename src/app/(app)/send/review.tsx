@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
 import { isLuckyAmount } from '@/lib/luck';
+import { usePaymentSheet } from '@/lib/payments';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 
 const BG = require('../../../../assets/background.png');
@@ -19,10 +20,6 @@ const OCCASION_LABELS: Record<string, string> = {
   just_because: 'Just Because',
 };
 
-function calcFee(amount: number): number {
-  return Math.ceil((amount * 0.029 + 0.30) * 100) / 100;
-}
-
 export default function ReviewStep() {
   const router = useRouter();
   const { user } = useAuth();
@@ -31,6 +28,7 @@ export default function ReviewStep() {
     message: string; messageSource: string; photoUri: string; giftAmount: string;
   }>();
   const [sending, setSending] = useState(false);
+  const payWithSheet = usePaymentSheet();
 
   // Delivery scheduling — "Send now" (default) or a future date at 9:00 AM local
   const [sendMode, setSendMode] = useState<'now' | 'date'>('now');
@@ -87,24 +85,57 @@ export default function ReviewStep() {
     }
     setSending(true);
 
-    // Payment (Stripe) is wired in a later phase — cash_amount is
-    // recorded on the row but nothing is charged yet.
-    const { error } = await supabase.from('gifts').insert({
-      sender_id: user.id,
-      recipient_contact_id: params.recipientId,
-      template_id: params.occasion,
-      message_text: params.message,
-      message_source: params.messageSource === 'ai_generated' ? 'ai_generated' : 'manual',
-      cash_amount: hasGift ? amount : null,
-      fee_amount: hasGift ? calcFee(amount) : null,
-      status: 'scheduled',
-      scheduled_send_at: sendAt.toISOString(),
-    });
+    const messageSource =
+      params.messageSource === 'ai_generated' ? 'ai_generated' : 'manual';
 
-    if (error) {
-      setSending(false);
-      Alert.alert('Could not send gift', error.message);
-      return;
+    if (hasGift) {
+      // Cash gift: the create-gift function makes the PaymentIntent and a
+      // pending gift row; the payment sheet confirms; the webhook marks it
+      // paid, which is what delivery requires.
+      const { data, error } = await supabase.functions.invoke('create-gift', {
+        body: {
+          recipient_contact_id: params.recipientId,
+          template_id: params.occasion,
+          message_text: params.message,
+          message_source: messageSource,
+          cash_amount: amount,
+          scheduled_send_at: sendAt.toISOString(),
+        },
+      });
+      if (error || data?.error || !data?.client_secret) {
+        setSending(false);
+        Alert.alert('Could not start payment', data?.error ?? 'Please try again.');
+        return;
+      }
+
+      const payment = await payWithSheet(data.client_secret);
+      if (!payment.ok) {
+        // Remove the pending gift so an abandoned payment leaves no trace
+        await supabase.from('gifts').delete().eq('id', data.gift_id);
+        setSending(false);
+        if (!payment.canceled) {
+          Alert.alert('Payment not completed', payment.error ?? 'Please try again.');
+        }
+        return;
+      }
+    } else {
+      const { error } = await supabase.from('gifts').insert({
+        sender_id: user.id,
+        recipient_contact_id: params.recipientId,
+        template_id: params.occasion,
+        message_text: params.message,
+        message_source: messageSource,
+        cash_amount: null,
+        fee_amount: null,
+        status: 'scheduled',
+        scheduled_send_at: sendAt.toISOString(),
+      });
+
+      if (error) {
+        setSending(false);
+        Alert.alert('Could not send gift', error.message);
+        return;
+      }
     }
 
     // The hundredth gift ever sent earns a once-in-a-lifetime moment
