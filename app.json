@@ -55,7 +55,6 @@
       [
         "@stripe/stripe-react-native",
         {
-          "merchantIdentifier": "merchant.com.delacroix.app",
           "enableGooglePay": false
         }
       ],

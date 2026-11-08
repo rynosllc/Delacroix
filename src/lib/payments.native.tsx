@@ -11,10 +11,7 @@ const PUBLISHABLE_KEY =
 
 export function GiftStripeProvider({ children }: { children: ReactElement }) {
   return (
-    <StripeProvider
-      publishableKey={PUBLISHABLE_KEY}
-      merchantIdentifier="merchant.com.delacroix.app"
-    >
+    <StripeProvider publishableKey={PUBLISHABLE_KEY}>
       {children}
     </StripeProvider>
   );
@@ -28,8 +25,9 @@ export function usePaymentSheet(): (clientSecret: string) => Promise<PaymentResu
       paymentIntentClientSecret: clientSecret,
       merchantDisplayName: 'DeLacroix',
       style: 'alwaysDark',
+      // Apple Pay deferred: requires a registered merchant ID + provisioning
+      // capability before it can ship. Cards via the sheet in the meantime.
       returnURL: 'delacroix://stripe-redirect',
-      applePay: { merchantCountryCode: 'US' },
       appearance: {
         colors: {
           primary: '#D4AF37',
