@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
@@ -14,13 +15,9 @@ import { BottomNavBar } from '@/components/BottomNavBar';
 const BG = require('../../../assets/background.png');
 const WORDMARK = require('../../../assets/images/ui/wordmark.png');
 
-// Complete baked buttons: frame + leather + icon + label in one image
-const HUB_BUTTONS = [
-  { label: 'YOUR PEOPLE', image: require('../../../assets/images/ui/btn-your-people.png'), route: '/people'         },
-  { label: 'SEND A GIFT', image: require('../../../assets/images/ui/btn-send-a-gift.png'), route: '/send/recipient' },
-  { label: 'YOUR GIFTS',  image: require('../../../assets/images/ui/btn-your-gifts.png'),  route: '/gifts'          },
-  { label: 'YOU',         image: require('../../../assets/images/ui/btn-you.png'),         route: '/profile'        },
-] as const;
+// Serif for display text — Baskerville reads as engraved on iOS; Georgia on
+// Android/web. Baked assets stay the source of truth for anything critical.
+const SERIF = Platform.select({ ios: 'Baskerville', default: 'Georgia' });
 
 interface UpcomingContact { id: string; display_name: string; days: number }
 
@@ -108,7 +105,7 @@ export default function HomeScreen() {
           setMomentLoading(false);
         });
 
-      // The sender's own birthday flips the moment card for the day
+      // The sender's own birthday flips the moment row for the day
       if (user) {
         supabase
           .from('users')
@@ -129,56 +126,11 @@ export default function HomeScreen() {
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Contextual moment card ── */}
-          <View style={styles.momentCard}>
-            {momentLoading ? (
-              <ActivityIndicator color={Brand.gold} size="small" />
-            ) : ownBirthday ? (
-              <View style={{ gap: 4 }}>
-                <Text style={styles.momentEyebrow}>YOUR MOMENT</Text>
-                <Text style={styles.momentText}>
-                  It's your moment today.{' '}
-                  <Text style={styles.momentGold}>Someone should be gifting you.</Text> 🎂
-                </Text>
-              </View>
-            ) : upcoming ? (
-              <View style={styles.momentRow}>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={styles.momentEyebrow}>YOUR MOMENT</Text>
-                  <Text style={styles.momentText}>
-                    {upcoming.display_name}'s birthday is in{' '}
-                    <Text style={styles.momentGold}>
-                      {upcoming.days === 0 ? 'today 🎂' : `${upcoming.days}d`}
-                    </Text>
-                  </Text>
-                </View>
-                {/* REPLACE WITH CUSTOM ASSET LATER */}
-                <TouchableOpacity
-                  style={styles.momentBtn}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/send/recipient',
-                      params: { prefilledId: upcoming.id, prefilledName: upcoming.display_name },
-                    })
-                  }
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.momentBtnText}>Send Gift</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <Text style={styles.momentEmpty}>
-                Add someone to Your People to never miss a moment
-              </Text>
-            )}
-          </View>
-
           {/* ── Wordmark ── */}
           <View style={styles.wordmarkBlock}>
             <TouchableOpacity onPress={onWordmarkTap} activeOpacity={1}>
               <Image source={WORDMARK} style={styles.wordmarkImage} resizeMode="contain" />
             </TouchableOpacity>
-            {fete && <Text style={styles.tagline}>c’est du fond du cœur</Text>}
             <View style={styles.dividerSlot}>
               <Animated.View style={[styles.divider, { transform: [{ scaleX: dividerScale }] }]} />
               <Animated.View
@@ -188,25 +140,144 @@ export default function HomeScreen() {
                 <Ionicons name="heart" size={16} color={Brand.gold} />
               </Animated.View>
             </View>
+            {/* The wordmark bakes in the English tagline; fête days add the French one */}
+            {fete && (
+              <Text style={styles.tagline} maxFontSizeMultiplier={1.2}>
+                c’est du fond du cœur
+              </Text>
+            )}
           </View>
 
-          {/* ── 2×2 hub grid — complete baked button images ── */}
-          <View style={styles.grid}>
-            {HUB_BUTTONS.map(btn => (
+          {/* ── Hero slot: baked envelope artwork drops in here when ready ── */}
+
+          {/* ── Primary CTA: Send a Gift ── */}
+          <TouchableOpacity
+            onPress={() => router.push('/send/recipient')}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#F2D57A', '#D9B952', '#B8923A']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={styles.cta}
+            >
+              <Text style={styles.ctaText} maxFontSizeMultiplier={1.2}>
+                SEND A GIFT
+              </Text>
+              <Ionicons name="chevron-forward" size={22} color="#1B3A2B" style={styles.ctaChevron} />
+            </LinearGradient>
+          </TouchableOpacity>
+
+          {/* ── Secondary pair: Your People / Your Gifts ── */}
+          <View style={styles.pairRow}>
+            <TouchableOpacity
+              style={styles.outlineBtn}
+              onPress={() => router.push('/people')}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="people-outline" size={34} color={Brand.gold} />
+              <View style={styles.outlineLabelRow}>
+                <Text style={styles.outlineLabel} maxFontSizeMultiplier={1.2}>YOUR PEOPLE</Text>
+                <Ionicons name="chevron-forward" size={14} color={Brand.gold} />
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.outlineBtn}
+              onPress={() => router.push('/gifts')}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="gift-outline" size={34} color={Brand.gold} />
+              <View style={styles.outlineLabelRow}>
+                <Text style={styles.outlineLabel} maxFontSizeMultiplier={1.2}>YOUR GIFTS</Text>
+                <Ionicons name="chevron-forward" size={14} color={Brand.gold} />
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Up Next ── */}
+          <View style={styles.upNext}>
+            <View style={styles.upNextHeader}>
+              <Text style={styles.upNextTitle} maxFontSizeMultiplier={1.2}>UP NEXT</Text>
+              <View style={styles.upNextRule} />
+            </View>
+
+            {momentLoading ? (
+              <View style={styles.row}>
+                <ActivityIndicator color={Brand.gold} size="small" />
+              </View>
+            ) : ownBirthday ? (
+              <View style={styles.row}>
+                <View style={styles.rowChip}>
+                  <Text style={styles.rowChipEmoji}>🎂</Text>
+                </View>
+                <View style={styles.rowDivider} />
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle} maxFontSizeMultiplier={1.2}>Your Moment</Text>
+                  <Text style={styles.rowSub} maxFontSizeMultiplier={1.2}>
+                    SOMEONE SHOULD BE GIFTING YOU TODAY
+                  </Text>
+                </View>
+              </View>
+            ) : upcoming ? (
               <TouchableOpacity
-                key={btn.route}
-                onPress={() => router.push(btn.route)}
-                activeOpacity={0.7}
-                style={styles.hubBtn}
+                style={styles.row}
+                activeOpacity={0.75}
+                onPress={() =>
+                  router.push({
+                    pathname: '/send/recipient',
+                    params: { prefilledId: upcoming.id, prefilledName: upcoming.display_name },
+                  })
+                }
               >
-                <Image
-                  source={btn.image}
-                  style={styles.hubBtnImage}
-                  resizeMode="contain"
-                  accessibilityLabel={btn.label}
-                />
+                <View style={styles.rowChip}>
+                  <Text style={styles.rowChipEmoji}>🎂</Text>
+                </View>
+                <View style={styles.rowDivider} />
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle} maxFontSizeMultiplier={1.2}>
+                    {upcoming.display_name}’s Birthday
+                  </Text>
+                  <Text style={styles.rowSub} maxFontSizeMultiplier={1.2}>
+                    {upcoming.days === 0 ? 'TODAY' : upcoming.days === 1 ? 'TOMORROW' : `IN ${upcoming.days} DAYS`}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={Brand.gold} />
               </TouchableOpacity>
-            ))}
+            ) : !hasContacts ? (
+              <TouchableOpacity
+                style={styles.row}
+                activeOpacity={0.75}
+                onPress={() => router.push('/people')}
+              >
+                <View style={styles.rowChip}>
+                  <Ionicons name="person-add-outline" size={20} color={Brand.gold} />
+                </View>
+                <View style={styles.rowDivider} />
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle} maxFontSizeMultiplier={1.2}>Add Your People</Text>
+                  <Text style={styles.rowSub} maxFontSizeMultiplier={1.2}>NEVER MISS A MOMENT</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={Brand.gold} />
+              </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              style={styles.row}
+              activeOpacity={0.75}
+              onPress={() => router.push('/send/recipient')}
+            >
+              <View style={styles.rowChip}>
+                <Ionicons name="heart-outline" size={20} color={Brand.gold} />
+              </View>
+              <View style={styles.rowDivider} />
+              <View style={styles.rowBody}>
+                <Text style={styles.rowTitle} maxFontSizeMultiplier={1.2}>Just Because</Text>
+                <Text style={styles.rowSub} maxFontSizeMultiplier={1.2}>
+                  A FRIEND COULD USE A SURPRISE
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={Brand.gold} />
+            </TouchableOpacity>
           </View>
         </ScrollView>
         <BottomNavBar />
@@ -217,34 +288,62 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  // flexGrow + space-evenly spreads the three blocks through the available
-  // height so the screen doesn't sit top-heavy above the nav pill
   scroll: {
-    padding: 20, paddingTop: 8, paddingBottom: 24,
-    gap: 24, flexGrow: 1, justifyContent: 'space-evenly',
+    padding: 20, paddingTop: 12, paddingBottom: 24,
+    gap: 22, flexGrow: 1, justifyContent: 'space-evenly',
   },
 
-  momentCard: {
-    backgroundColor: 'rgba(28, 43, 30, 0.78)',
-    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.35)',
-    borderRadius: 14, padding: 16, minHeight: 62, justifyContent: 'center',
-  },
-  momentRow:      { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  momentEyebrow:  { color: 'rgba(212,175,55,0.55)', fontSize: 10, letterSpacing: 1.5 },
-  momentText:     { color: Brand.cream, fontSize: 15, lineHeight: 21 },
-  momentGold:     { color: Brand.gold, fontWeight: '700' },
-  momentEmpty:    { color: Brand.muted, fontSize: 13, textAlign: 'center', fontStyle: 'italic' },
-  momentBtn:      { backgroundColor: '#D4AF37', borderRadius: 10, paddingHorizontal: 14, paddingVertical: 9 },
-  momentBtnText:  { color: '#1B3A2B', fontSize: 13, fontWeight: '700', letterSpacing: 0.5 },
-
-  wordmarkBlock: { alignItems: 'center', gap: 8 },
+  wordmarkBlock: { alignItems: 'center', gap: 6 },
   wordmarkImage: { width: 280, height: 75 },
-  tagline:       { color: 'rgba(212,175,55,0.65)', fontSize: 13, fontStyle: 'italic', letterSpacing: 1 },
-  dividerSlot:   { height: 18, marginTop: 4, alignItems: 'center', justifyContent: 'center' },
+  dividerSlot:   { height: 18, alignItems: 'center', justifyContent: 'center' },
   divider:       { width: 48, height: 1, backgroundColor: 'rgba(212,175,55,0.4)' },
   dividerHeart:  { position: 'absolute' },
+  tagline: {
+    color: 'rgba(212,175,55,0.75)', fontSize: 15, fontStyle: 'italic',
+    letterSpacing: 1.5, fontFamily: SERIF,
+  },
 
-  grid: { flexDirection: 'row', flexWrap: 'wrap', columnGap: 14, rowGap: 22, justifyContent: 'center' },
-  hubBtn: { width: '47%', height: 160 },
-  hubBtnImage: { width: '100%', height: '100%' },
+  cta: {
+    borderRadius: 14, paddingVertical: 18, paddingHorizontal: 24,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: '#F7E7A8',
+  },
+  ctaText: {
+    color: '#1B3A2B', fontSize: 21, fontWeight: '700',
+    letterSpacing: 4, fontFamily: SERIF,
+  },
+  ctaChevron: { position: 'absolute', right: 18 },
+
+  pairRow: { flexDirection: 'row', gap: 14 },
+  outlineBtn: {
+    flex: 1, alignItems: 'center', gap: 10,
+    paddingVertical: 20, paddingHorizontal: 12,
+    borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.65)',
+    backgroundColor: 'rgba(28, 43, 30, 0.55)',
+  },
+  outlineLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  outlineLabel: { color: Brand.gold, fontSize: 13, fontWeight: '600', letterSpacing: 2 },
+
+  upNext: { gap: 12 },
+  upNextHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  upNextTitle: { color: Brand.cream, fontSize: 13, fontWeight: '600', letterSpacing: 3 },
+  upNextRule: { flex: 1, height: 1, backgroundColor: 'rgba(212,175,55,0.3)' },
+
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: 'rgba(28, 43, 30, 0.72)',
+    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.28)',
+    borderRadius: 14, paddingVertical: 14, paddingHorizontal: 14, minHeight: 68,
+  },
+  rowChip: {
+    width: 42, height: 42, borderRadius: 11,
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.45)',
+    backgroundColor: 'rgba(212,175,55,0.08)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  rowChipEmoji: { fontSize: 19 },
+  rowDivider: { width: 1, height: 34, backgroundColor: 'rgba(212,175,55,0.3)' },
+  rowBody: { flex: 1, gap: 3 },
+  rowTitle: { color: Brand.cream, fontSize: 17, fontFamily: SERIF },
+  rowSub: { color: 'rgba(212,175,55,0.6)', fontSize: 10, letterSpacing: 1.5 },
 });
