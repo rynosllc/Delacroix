@@ -14,6 +14,7 @@ import { BottomNavBar } from '@/components/BottomNavBar';
 
 const BG = require('../../../assets/background.png');
 const WORDMARK = require('../../../assets/images/ui/wordmark.png');
+const HERO = require('../../../assets/images/ui/hero-envelope.png');
 
 // Serif for display text — Baskerville reads as engraved on iOS; Georgia on
 // Android/web. Baked assets stay the source of truth for anything critical.
@@ -148,7 +149,10 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* ── Hero slot: baked envelope artwork drops in here when ready ── */}
+          {/* ── Hero envelope ── */}
+          <View style={styles.hero}>
+            <Image source={HERO} style={styles.heroImage} resizeMode="cover" />
+          </View>
 
           {/* ── Primary CTA: Send a Gift ── */}
           <TouchableOpacity
@@ -302,6 +306,15 @@ const styles = StyleSheet.create({
     color: 'rgba(212,175,55,0.75)', fontSize: 15, fontStyle: 'italic',
     letterSpacing: 1.5, fontFamily: SERIF,
   },
+
+  // Size the wrapper, not the image: RN-web ignores aspectRatio on an Image
+  // with a known natural size and renders it at full pixel height.
+  hero: {
+    width: '100%', aspectRatio: 863 / 384,
+    borderRadius: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)',
+  },
+  heroImage: { width: '100%', height: '100%' },
 
   cta: {
     borderRadius: 14, paddingVertical: 18, paddingHorizontal: 24,
