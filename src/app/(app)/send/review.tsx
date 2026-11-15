@@ -10,6 +10,7 @@ import { Brand } from '@/constants/brand';
 import { isLuckyAmount } from '@/lib/luck';
 import { usePaymentSheet } from '@/lib/payments';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
+import { Lux, SERIF, LuxButton } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
 
@@ -214,7 +215,7 @@ export default function ReviewStep() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.deliveryOptText, sendMode === 'now' && styles.deliveryOptTextActive]}>
-                  Send now
+                  SEND NOW
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -223,7 +224,7 @@ export default function ReviewStep() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.deliveryOptText, sendMode === 'date' && styles.deliveryOptTextActive]}>
-                  Send on a date
+                  SEND ON A DATE
                 </Text>
               </TouchableOpacity>
             </View>
@@ -280,21 +281,13 @@ export default function ReviewStep() {
             )}
           </View>
 
-          {/* REPLACE WITH CUSTOM ASSET LATER */}
-          <TouchableOpacity
-            style={[
-              styles.sendBtn,
-              (sending || !scheduleValid) && styles.sendBtnDisabled,
-            ]}
+          <LuxButton
+            title="Send with Love ♥"
             onPress={handleSend}
-            disabled={sending || !scheduleValid}
-            activeOpacity={0.85}
-          >
-            {sending
-              ? <ActivityIndicator color="#1B3A2B" />
-              : <Text style={styles.sendBtnText}>Send with Love ♥</Text>
-            }
-          </TouchableOpacity>
+            loading={sending}
+            disabled={!scheduleValid}
+            style={{ marginHorizontal: 22 }}
+          />
         </ScrollView>
       </SafeAreaView>
     </ImageBackground>
@@ -313,63 +306,59 @@ function SummaryRow({
         <Text style={sumStyles.value} numberOfLines={multiline ? 3 : 1}>{value}</Text>
       </View>
       <TouchableOpacity onPress={onEdit} activeOpacity={0.7}>
-        <Text style={sumStyles.edit}>Edit</Text>
+        <Text style={sumStyles.edit} maxFontSizeMultiplier={1.25}>EDIT</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const sumStyles = StyleSheet.create({
-  row:   { paddingHorizontal: 16, paddingVertical: 14, flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  label: { color: 'rgba(212,175,55,0.55)', fontSize: 10, letterSpacing: 1.5 },
-  value: { color: Brand.cream, fontSize: 15, lineHeight: 21 },
-  edit:  { color: Brand.gold, fontSize: 13, fontWeight: '600', paddingTop: 18 },
+  row:   { paddingHorizontal: 18, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  label: { color: 'rgba(217,180,90,0.75)', fontSize: 10, letterSpacing: 2 },
+  value: { color: Lux.cream, fontSize: 17, lineHeight: 23, fontFamily: SERIF },
+  edit:  { color: Lux.gold, fontSize: 11, fontWeight: '600', letterSpacing: 1.5 },
 });
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  scroll: { padding: 20, gap: 20, paddingBottom: 40 },
+  scroll: { gap: 18, paddingBottom: 40 },
   card: {
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 14, overflow: 'hidden',
+    marginHorizontal: 22,
+    backgroundColor: Lux.glass,
+    borderWidth: 1, borderColor: Lux.hairline,
+    borderRadius: 16, overflow: 'hidden',
   },
-  rowSep:  { height: 1, backgroundColor: Brand.greenBorder, marginHorizontal: 16 },
+  rowSep:  { height: 1, backgroundColor: Lux.hairline, marginHorizontal: 18 },
 
   deliveryCard: {
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 14, padding: 16, gap: 12,
+    marginHorizontal: 22,
+    backgroundColor: Lux.glass,
+    borderWidth: 1, borderColor: Lux.hairline,
+    borderRadius: 16, padding: 18, gap: 12,
   },
-  deliveryLabel: { color: 'rgba(212,175,55,0.55)', fontSize: 10, letterSpacing: 1.5 },
+  deliveryLabel: { color: 'rgba(217,180,90,0.75)', fontSize: 10, letterSpacing: 2 },
   deliveryToggle: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(28, 43, 30, 0.7)',
-    borderRadius: 10, padding: 4, gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderRadius: 12, padding: 4, gap: 4,
   },
-  deliveryOpt:       { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
+  deliveryOpt:       { flex: 1, paddingVertical: 10, borderRadius: 9, alignItems: 'center' },
   deliveryOptActive: {
-    backgroundColor: 'rgba(212, 175, 55, 0.15)',
-    borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)',
+    backgroundColor: 'rgba(217,180,90,0.14)',
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.45)',
   },
-  deliveryOptText:       { color: Brand.muted, fontSize: 13, fontWeight: '600' },
-  deliveryOptTextActive: { color: Brand.gold },
+  deliveryOptText:       { color: Lux.muted, fontSize: 11, fontWeight: '600', letterSpacing: 1.5 },
+  deliveryOptTextActive: { color: Lux.goldBright },
 
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   dateInput: {
-    backgroundColor: 'rgba(28, 43, 30, 0.7)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.38)',
     borderRadius: 10, paddingHorizontal: 10, paddingVertical: 9,
-    fontSize: 15, color: Brand.cream, textAlign: 'center',
+    fontSize: 15, color: Lux.cream, textAlign: 'center',
   },
   dateSegment: { width: 52 },
   dateYear:    { width: 72 },
-  dateSep:     { color: Brand.muted, fontSize: 16 },
-  dateHint:    { color: Brand.muted, fontSize: 11, fontStyle: 'italic', flex: 1, textAlign: 'right' },
-  sendBtn: {
-    height: 56, backgroundColor: '#D4AF37',
-    borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-  },
-  sendBtnDisabled: { opacity: 0.6 },
-  sendBtnText: { color: '#1B3A2B', fontSize: 17, fontWeight: '700', letterSpacing: 1.5 },
+  dateSep:     { color: Lux.muted, fontSize: 16 },
+  dateHint:    { color: Lux.muted, fontSize: 11, fontStyle: 'italic', flex: 1, textAlign: 'right' },
 });

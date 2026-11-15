@@ -8,6 +8,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
+import { Ionicons } from '@expo/vector-icons';
+import { Lux, SERIF, LuxButton, LuxBackHeader } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
 const CLAIM_BASE = 'https://delacroix.expo.app/claim/';
@@ -119,9 +121,7 @@ export default function GiftDetailScreen() {
       <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
         <View style={styles.center}>
           <Text style={styles.missing}>This gift is no longer available.</Text>
-          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <Text style={styles.backLink}>‹ Back</Text>
-          </TouchableOpacity>
+          <LuxButton title="Back" variant="outline" onPress={() => router.back()} />
         </View>
       </ImageBackground>
     );
@@ -136,25 +136,34 @@ export default function GiftDetailScreen() {
         contentContainerStyle={[styles.scroll, { paddingTop: insets.top + 12 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-            <Text style={styles.backLink}>‹ Back</Text>
-          </TouchableOpacity>
-          <View style={[styles.badge, { borderColor: statusColor }]}>
-            <Text style={[styles.badgeText, { color: statusColor }]}>
-              {gift.status.toUpperCase()}
-            </Text>
-          </View>
+        <View style={styles.headerBleed}>
+          <LuxBackHeader
+            onBack={() => router.back()}
+            right={
+              <View style={[styles.badge, { borderColor: statusColor }]}>
+                <Text style={[styles.badgeText, { color: statusColor }]}>
+                  {gift.status.toUpperCase()}
+                </Text>
+              </View>
+            }
+          />
         </View>
 
-        <Text style={styles.title}>
-          {isSender
-            ? `To ${gift.recipient_contacts?.display_name ?? 'someone special'}`
-            : `From ${gift.users?.display_name ?? 'someone special'}`}
-        </Text>
-        <Text style={styles.occasion}>
-          {OCCASION_LABELS[gift.template_id] ?? gift.template_id}
-        </Text>
+        <View style={styles.titleBlock}>
+          <Text style={styles.occasion} maxFontSizeMultiplier={1.25}>
+            {(OCCASION_LABELS[gift.template_id] ?? gift.template_id).toUpperCase()}
+          </Text>
+          <Text style={styles.title} maxFontSizeMultiplier={1.25}>
+            {isSender
+              ? `To ${gift.recipient_contacts?.display_name ?? 'someone special'}`
+              : `From ${gift.users?.display_name ?? 'someone special'}`}
+          </Text>
+          <View style={styles.titleRuleRow}>
+            <View style={styles.titleRule} />
+            <Ionicons name="heart" size={9} color={Lux.gold} />
+            <View style={styles.titleRule} />
+          </View>
+        </View>
 
         {/* Message */}
         <View style={styles.card}>
@@ -199,9 +208,7 @@ export default function GiftDetailScreen() {
 
         {/* Actions */}
         {isSender && gift.status === 'sent' ? (
-          <TouchableOpacity style={styles.primaryBtn} onPress={shareClaimLink} activeOpacity={0.85}>
-            <Text style={styles.primaryBtnText}>Share Claim Link</Text>
-          </TouchableOpacity>
+          <LuxButton title="Share claim link" onPress={shareClaimLink} />
         ) : null}
 
         {isSender && gift.status === 'scheduled' ? (
@@ -212,8 +219,8 @@ export default function GiftDetailScreen() {
             activeOpacity={0.85}
           >
             {busy
-              ? <ActivityIndicator color="#C0392B" />
-              : <Text style={styles.dangerBtnText}>Cancel Gift</Text>}
+              ? <ActivityIndicator color={Lux.danger} />
+              : <Text style={styles.dangerBtnText} maxFontSizeMultiplier={1.25}>CANCEL GIFT</Text>}
           </TouchableOpacity>
         ) : null}
       </ScrollView>
@@ -232,43 +239,40 @@ function TimelineRow({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  missing: { color: Brand.muted, fontSize: 15, fontStyle: 'italic' },
-  scroll: { padding: 20, paddingBottom: 48, gap: 14 },
+  missing: { color: Lux.muted, fontSize: 16, fontStyle: 'italic', fontFamily: SERIF },
+  scroll: { paddingHorizontal: 22, paddingBottom: 48, gap: 14 },
+  headerBleed: { marginHorizontal: -22 },
 
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  backLink:  { color: Brand.gold, fontSize: 16 },
   badge: {
     borderWidth: 1, borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
+  badgeText: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2 },
 
-  title:    { color: Brand.cream, fontSize: 24, fontFamily: 'ui-serif', letterSpacing: 0.5 },
-  occasion: { color: 'rgba(212,175,55,0.7)', fontSize: 14, fontStyle: 'italic', marginTop: -8 },
+  titleBlock: { alignItems: 'center', gap: 8, paddingBottom: 6 },
+  occasion: { color: 'rgba(217,180,90,0.8)', fontSize: 11, letterSpacing: 2.5 },
+  title:    { color: Lux.cream, fontSize: 28, fontFamily: SERIF, letterSpacing: 0.5, textAlign: 'center' },
+  titleRuleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  titleRule: { width: 46, height: 1, backgroundColor: Lux.line },
 
   card: {
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 12, padding: 16, gap: 8,
+    backgroundColor: Lux.glass,
+    borderWidth: 1, borderColor: Lux.hairline,
+    borderRadius: 16, padding: 18, gap: 8,
   },
-  thanksCard: { borderColor: 'rgba(212,175,55,0.45)' },
-  cardLabel:  { color: 'rgba(212,175,55,0.55)', fontSize: 10, letterSpacing: 1.5 },
-  message:    { color: Brand.cream, fontSize: 15, lineHeight: 22 },
-  cash:       { color: Brand.gold, fontSize: 24, fontWeight: '700' },
-  feeNote:    { color: Brand.muted, fontSize: 12 },
+  thanksCard: { borderColor: 'rgba(217,180,90,0.5)' },
+  cardLabel:  { color: 'rgba(217,180,90,0.75)', fontSize: 10, letterSpacing: 2 },
+  message:    { color: Lux.cream, fontSize: 18, lineHeight: 26, fontFamily: SERIF },
+  cash:       { color: Lux.goldBright, fontSize: 30, fontFamily: SERIF },
+  feeNote:    { color: Lux.muted, fontSize: 12 },
 
   timelineRow:   { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
-  timelineLabel: { color: Brand.muted, fontSize: 13 },
-  timelineValue: { color: Brand.cream, fontSize: 13 },
+  timelineLabel: { color: Lux.muted, fontSize: 13 },
+  timelineValue: { color: Lux.cream, fontSize: 13 },
 
-  primaryBtn: {
-    height: 52, backgroundColor: '#D4AF37', borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  primaryBtnText: { color: '#1B3A2B', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
   dangerBtn: {
-    height: 52, borderWidth: 1.5, borderColor: '#C0392B', borderRadius: 12,
+    height: 54, borderWidth: 1.5, borderColor: Lux.danger, borderRadius: 14,
     alignItems: 'center', justifyContent: 'center',
   },
-  dangerBtnText: { color: '#C0392B', fontSize: 15, fontWeight: '600', letterSpacing: 0.5 },
+  dangerBtnText: { color: Lux.danger, fontSize: 13, fontWeight: '600', letterSpacing: 2.5 },
 });

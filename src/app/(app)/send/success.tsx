@@ -5,7 +5,9 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Brand } from '@/constants/brand';
+import { Lux, SERIF, LuxButton } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
 
@@ -21,7 +23,9 @@ export default function SendSuccessScreen() {
       <SafeAreaView style={styles.safe}>
         <View style={styles.body}>
           <View style={styles.checkCircle}>
-            <Text style={styles.check}>✓</Text>
+            <View style={styles.checkInner}>
+              <Ionicons name="checkmark" size={46} color={Lux.goldBright} />
+            </View>
           </View>
           <Text style={styles.title}>Your gift is on its way</Text>
           {recipientName ? (
@@ -40,22 +44,13 @@ export default function SendSuccessScreen() {
           )}
         </View>
 
-        {/* REPLACE WITH CUSTOM ASSET LATER */}
-        <TouchableOpacity
-          style={styles.doneBtn}
-          onPress={() => router.replace('/')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.doneBtnText}>Done</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.viewGifts}
+        <LuxButton title="Done" onPress={() => router.replace('/')} />
+        <LuxButton
+          title="View your gifts"
+          variant="outline"
           onPress={() => router.replace('/gifts')}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.viewGiftsText}>View your gifts</Text>
-        </TouchableOpacity>
+          style={{ marginTop: 12, marginBottom: 8 }}
+        />
 
         {isCentieme && <HeartRain />}
       </SafeAreaView>
@@ -140,32 +135,28 @@ function HeartRain() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, padding: 20 },
+  safe: { flex: 1, padding: 22 },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18 },
   checkCircle: {
-    width: 96, height: 96, borderRadius: 48,
-    borderWidth: 2, borderColor: '#D4AF37',
-    backgroundColor: 'rgba(212, 175, 55, 0.12)',
+    width: 108, height: 108, borderRadius: 54,
+    borderWidth: 1.5, borderColor: Lux.gold,
     alignItems: 'center', justifyContent: 'center',
   },
-  check:    { color: '#D4AF37', fontSize: 48, lineHeight: 56 },
-  title:    { color: Brand.gold, fontSize: 26, fontFamily: 'ui-serif', letterSpacing: 1, textAlign: 'center' },
-  subtitle: { color: Brand.muted, fontSize: 14, fontStyle: 'italic', textAlign: 'center' },
+  checkInner: {
+    width: 92, height: 92, borderRadius: 46,
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.35)',
+    backgroundColor: 'rgba(217,180,90,0.10)',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  title:    { color: Lux.cream, fontSize: 28, fontFamily: SERIF, letterSpacing: 0.5, textAlign: 'center' },
+  subtitle: { color: Lux.muted, fontSize: 15, fontStyle: 'italic', textAlign: 'center', fontFamily: SERIF },
 
   plaque: {
     marginTop: 10, paddingHorizontal: 24, paddingVertical: 14,
-    backgroundColor: 'rgba(36, 51, 39, 0.9)',
-    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.6)',
-    borderRadius: 10, alignItems: 'center', gap: 4,
+    backgroundColor: Lux.glass,
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.6)',
+    borderRadius: 12, alignItems: 'center', gap: 4,
   },
-  plaqueTitle: { color: Brand.gold, fontSize: 18, fontFamily: 'ui-serif', letterSpacing: 2 },
-  plaqueSub:   { color: Brand.muted, fontSize: 12, fontStyle: 'italic' },
-
-  doneBtn: {
-    height: 56, backgroundColor: '#D4AF37',
-    borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-  },
-  doneBtnText:   { color: '#1B3A2B', fontSize: 16, fontWeight: '700', letterSpacing: 1.5 },
-  viewGifts:     { alignItems: 'center', paddingVertical: 16 },
-  viewGiftsText: { color: Brand.gold, fontSize: 14 },
+  plaqueTitle: { color: Lux.goldBright, fontSize: 19, fontFamily: SERIF, letterSpacing: 2 },
+  plaqueSub:   { color: Lux.muted, fontSize: 12, fontStyle: 'italic' },
 });

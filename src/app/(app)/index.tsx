@@ -244,7 +244,7 @@ export default function HomeScreen() {
                 </View>
                 <View style={styles.rowDivider} />
                 <View style={styles.rowBody}>
-                  <Text style={styles.rowTitle} maxFontSizeMultiplier={1.2}>
+                  <Text style={styles.rowTitle} maxFontSizeMultiplier={1.2} numberOfLines={1}>
                     {upcoming.display_name}’s Birthday
                   </Text>
                   <Text style={styles.rowSub} maxFontSizeMultiplier={1.2}>

@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ImageBackground, ActivityIndicator, Platform,
+  View, Text, TextInput, StyleSheet,
+  ImageBackground, ActivityIndicator, Platform, Image,
 } from 'react-native';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
+import { Lux, SERIF, LuxButton, luxStyles } from '@/components/lux';
 
 const BG = require('../../assets/background.png');
+const LOCKUP = require('../../assets/images/ui/brand-lockup.png');
 
 // Landing page for Supabase password-recovery links (web). The email link
 // verifies the token and redirects here with access/refresh tokens in the
@@ -46,7 +48,7 @@ export default function ResetPasswordScreen() {
     <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
       <View style={styles.page}>
         <View style={styles.card}>
-          <Text style={styles.wordmark}>DeLacroix</Text>
+          <Image source={LOCKUP} style={styles.lockup} resizeMode="contain" accessibilityLabel="DeLacroix" />
 
           {ready === 'checking' && <ActivityIndicator color={Brand.gold} />}
 
@@ -82,16 +84,12 @@ export default function ResetPasswordScreen() {
                 onChangeText={setConfirm}
               />
               {error ? <Text style={styles.error}>{error}</Text> : null}
-              <TouchableOpacity
-                style={[styles.btn, saving && { opacity: 0.7 }]}
+              <LuxButton
+                title="Save new password"
                 onPress={handleSave}
-                disabled={saving}
-                activeOpacity={0.85}
-              >
-                {saving
-                  ? <ActivityIndicator color="#1B3A2B" />
-                  : <Text style={styles.btnText}>Save New Password</Text>}
-              </TouchableOpacity>
+                loading={saving}
+                style={{ width: '100%' }}
+              />
             </>
           )}
 
@@ -104,7 +102,6 @@ export default function ResetPasswordScreen() {
             </>
           )}
 
-          <Text style={styles.footer}>it's from the heart</Text>
         </View>
       </View>
     </ImageBackground>
@@ -114,21 +111,9 @@ export default function ResetPasswordScreen() {
 const styles = StyleSheet.create({
   page: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
   card: { width: '100%', maxWidth: 420, alignItems: 'center', gap: 16 },
-  wordmark: { fontFamily: 'ui-serif', fontSize: 26, color: Brand.gold, letterSpacing: 2.5, marginBottom: 8 },
-  title: { color: Brand.cream, fontSize: 22, fontFamily: 'ui-serif', textAlign: 'center' },
-  sub:   { color: Brand.cream, fontSize: 14, textAlign: 'center', lineHeight: 21, opacity: 0.85 },
-  input: {
-    width: '100%',
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: Brand.cream,
-  },
-  error: { color: '#E08A80', fontSize: 13, textAlign: 'center' },
-  btn: {
-    width: '100%', height: 52, backgroundColor: '#D4AF37',
-    borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-  },
-  btnText: { color: '#1B3A2B', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
-  footer: { color: 'rgba(212,175,55,0.45)', fontSize: 12, fontStyle: 'italic', letterSpacing: 1, marginTop: 16 },
+  lockup: { width: 236, height: 190 },
+  title: { color: Lux.cream, fontSize: 24, fontFamily: SERIF, textAlign: 'center' },
+  sub:   { color: Lux.muted, fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  input: { ...luxStyles.input, width: '100%' },
+  error: { color: Lux.danger, fontSize: 13, textAlign: 'center' },
 });

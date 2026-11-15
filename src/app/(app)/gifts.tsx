@@ -9,16 +9,20 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
 import { BottomNavBar } from '@/components/BottomNavBar';
+import { Ionicons } from '@expo/vector-icons';
+import { Lux, SERIF, LuxTitle, LuxChip } from '@/components/lux';
 
 const BG = require('../../../assets/background.png');
 
 const TABS = ['SENT', 'RECEIVED', 'SCHEDULED'] as const;
 type Tab = typeof TABS[number];
 
-const EMPTY_STATES: Record<Tab, { icon: string; text: string }> = {
-  SENT:      { icon: '🎁', text: 'Your sent gifts will appear here' },
-  RECEIVED:  { icon: '💝', text: 'Gifts you claim while signed in will appear here' },
-  SCHEDULED: { icon: '📅', text: 'Gifts waiting for their moment will appear here' },
+type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
+
+const EMPTY_STATES: Record<Tab, { icon: IoniconName; text: string }> = {
+  SENT:      { icon: 'gift-outline',     text: 'Your sent gifts will appear here' },
+  RECEIVED:  { icon: 'heart-outline',    text: 'Gifts you claim while signed in will appear here' },
+  SCHEDULED: { icon: 'calendar-outline', text: 'Gifts waiting for their moment will appear here' },
 };
 
 const OCCASION_LABELS: Record<string, string> = {
@@ -95,9 +99,7 @@ export default function GiftsScreen() {
       <View style={{ flex: 1 }}>
         <View style={[styles.content, { paddingTop: insets.top }]}>
 
-          <View style={styles.header}>
-            <Text style={styles.title}>Your Gifts</Text>
-          </View>
+          <LuxTitle>Your Gifts</LuxTitle>
 
           {/* Tab bar */}
           <View style={styles.tabBar}>
@@ -139,10 +141,14 @@ export default function GiftsScreen() {
                     onPress={() => router.push({ pathname: '/gift/[id]', params: { id: item.id } })}
                     activeOpacity={0.7}
                   >
+                    <LuxChip icon={received ? 'heart-outline' : 'gift-outline'} />
+                    <View style={styles.cardDivider} />
                     <View style={{ flex: 1, gap: 3 }}>
-                      <Text style={styles.giftRecipient}>{counterparty}</Text>
+                      <Text style={styles.giftRecipient} numberOfLines={1} maxFontSizeMultiplier={1.25}>
+                        {counterparty}
+                      </Text>
                       <Text style={styles.giftMeta}>
-                        {OCCASION_LABELS[item.template_id] ?? item.template_id}
+                        {(OCCASION_LABELS[item.template_id] ?? item.template_id).toUpperCase()}
                         {item.cash_amount ? `  ·  $${Number(item.cash_amount).toFixed(2)}` : ''}
                       </Text>
                       {/* A thank-you in French earns a quiet wax seal */}
@@ -160,7 +166,7 @@ export default function GiftsScreen() {
                         {item.status.toUpperCase()}
                       </Text>
                     </View>
-                    <Text style={styles.chevron}>›</Text>
+                    <Ionicons name="chevron-forward" size={16} color={Lux.gold} />
                   </TouchableOpacity>
                 );
               }}
@@ -168,7 +174,7 @@ export default function GiftsScreen() {
             />
           ) : (
             <View style={styles.empty}>
-              <Text style={styles.emptyIcon}>{icon}</Text>
+              <LuxChip icon={icon} size={76} />
               <Text style={styles.emptyText}>{text}</Text>
             </View>
           )}
@@ -182,31 +188,30 @@ export default function GiftsScreen() {
 
 const styles = StyleSheet.create({
   content: { flex: 1 },
-  header:  { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
-  title:   { fontFamily: 'ui-serif', fontSize: 26, color: Brand.gold, letterSpacing: 1 },
 
   tabBar: {
     flexDirection: 'row',
-    borderBottomWidth: 1, borderBottomColor: Brand.greenBorder,
-    marginHorizontal: 20, marginBottom: 8,
+    borderBottomWidth: 1, borderBottomColor: Lux.hairline,
+    marginHorizontal: 22, marginBottom: 8,
   },
   tabBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, position: 'relative' },
-  tabLabel:       { color: Brand.muted,  fontSize: 12, fontWeight: '700', letterSpacing: 1.5 },
-  tabLabelActive: { color: Brand.gold },
+  tabLabel:       { color: Lux.muted, fontSize: 11, fontWeight: '600', letterSpacing: 2 },
+  tabLabelActive: { color: Lux.goldBright },
   tabUnderline: {
-    position: 'absolute', bottom: 0, left: '15%', right: '15%',
-    height: 2, backgroundColor: Brand.gold, borderRadius: 1,
+    position: 'absolute', bottom: -1, left: '15%', right: '15%',
+    height: 2, backgroundColor: Lux.gold, borderRadius: 1,
   },
 
-  list: { padding: 20, paddingTop: 12, paddingBottom: 40 },
+  list: { paddingHorizontal: 22, paddingTop: 12, paddingBottom: 40 },
   giftCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 12, padding: 16,
+    backgroundColor: Lux.glass,
+    borderWidth: 1, borderColor: Lux.hairline,
+    borderRadius: 16, paddingVertical: 12, paddingHorizontal: 14,
   },
-  giftRecipient: { color: Brand.cream, fontSize: 16 },
-  giftMeta:      { color: Brand.muted, fontSize: 13 },
+  cardDivider:   { width: 1, height: 30, backgroundColor: 'rgba(217,180,90,0.55)' },
+  giftRecipient: { color: Lux.cream, fontSize: 17, fontFamily: SERIF },
+  giftMeta:      { color: 'rgba(217,180,90,0.75)', fontSize: 11, letterSpacing: 1.2 },
   merciRow:      { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
   merciSeal: {
     width: 16, height: 16, borderRadius: 8,
@@ -220,10 +225,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderRadius: 20,
     paddingHorizontal: 10, paddingVertical: 4,
   },
-  badgeText: { fontSize: 10, fontWeight: '700', letterSpacing: 1 },
-  chevron:   { color: Brand.greenBorder, fontSize: 22 },
+  badgeText: { fontSize: 9, fontWeight: '700', letterSpacing: 1.2 },
 
-  empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, paddingHorizontal: 40 },
-  emptyIcon:  { fontSize: 44, opacity: 0.45 },
-  emptyText:  { color: Brand.muted, fontSize: 14, textAlign: 'center', lineHeight: 20, fontStyle: 'italic' },
+  empty:      { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18, paddingHorizontal: 40 },
+  emptyText:  { color: Lux.muted, fontSize: 15, textAlign: 'center', lineHeight: 22, fontStyle: 'italic', fontFamily: SERIF },
 });

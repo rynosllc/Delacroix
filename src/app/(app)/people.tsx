@@ -8,9 +8,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
 import { Brand } from '@/constants/brand';
 import { BottomNavBar } from '@/components/BottomNavBar';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Lux, SERIF, LuxTitle, LuxInitials } from '@/components/lux';
 
 const BG = require('../../../assets/background.png');
-const ADD_BUTTON = require('../../../assets/images/nav/add.png');
 
 interface Contact {
   id: string; display_name: string; email: string | null;
@@ -103,16 +105,16 @@ export default function PeopleScreen() {
       <View style={{ flex: 1 }}>
         <View style={[styles.content, { paddingTop: insets.top }]}>
 
-          <View style={styles.header}>
-            <Text style={styles.title}>Your People</Text>
-          </View>
+          <LuxTitle>Your People</LuxTitle>
 
           {/* Search bar */}
           <View style={styles.searchWrap}>
+            <Ionicons name="search" size={17} color={Lux.gold} />
             <TextInput
               style={styles.search}
-              placeholder="Search by name…"
-              placeholderTextColor={Brand.muted}
+              placeholder="Search by name"
+              placeholderTextColor={Lux.faint}
+              maxFontSizeMultiplier={1.25}
               selectionColor={Brand.gold}
               value={search}
               onChangeText={setSearch}
@@ -148,27 +150,37 @@ export default function PeopleScreen() {
                 onPress={() => router.push(`/profile/${item.id}`)}
                 activeOpacity={0.7}
               >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initials(item.display_name)}</Text>
-                </View>
+                <LuxInitials name={item.display_name} />
+                <View style={styles.rowDivider} />
                 <View style={styles.info}>
-                  <Text style={styles.name}>{item.display_name}</Text>
+                  <Text style={styles.name} maxFontSizeMultiplier={1.25} numberOfLines={1}>
+                    {item.display_name}
+                  </Text>
                   <ContactSubline contact={item} />
                 </View>
-                <Text style={styles.chevron}>›</Text>
+                <Ionicons name="chevron-forward" size={16} color={Lux.gold} />
               </TouchableOpacity>
             )}
-            ItemSeparatorComponent={() => <View style={styles.sep} />}
+            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
           />
         </View>
 
         {/* FAB — positioned above nav bar */}
         <TouchableOpacity
-          style={[styles.fab, { bottom: insets.bottom + 92 + 20 }]}
+          style={[styles.fab, { bottom: insets.bottom + 100 }]}
           onPress={() => router.push('/contact/new')}
           activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel="Add a person"
         >
-          <Image source={ADD_BUTTON} style={styles.fabImage} resizeMode="contain" />
+          <LinearGradient
+            colors={['#F6E3A1', '#DDBB5C', '#B98F38']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.fabFace}
+          >
+            <Ionicons name="add" size={30} color={Lux.ink} />
+          </LinearGradient>
         </TouchableOpacity>
 
         <BottomNavBar />
@@ -179,38 +191,37 @@ export default function PeopleScreen() {
 
 const styles = StyleSheet.create({
   content:    { flex: 1 },
-  header:     { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
-  title:      { fontFamily: 'ui-serif', fontSize: 26, color: Brand.gold, letterSpacing: 1 },
-  searchWrap: { paddingHorizontal: 20, paddingBottom: 8 },
-  search: {
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: Brand.cream,
+  searchWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 22, marginBottom: 14, height: 48,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.38)',
+    borderRadius: 14, paddingHorizontal: 16,
   },
-  listContent:    { paddingBottom: 120 },
+  search: { flex: 1, height: '100%', fontSize: 16, color: Lux.cream },
+  listContent:    { paddingHorizontal: 22, paddingBottom: 120 },
   emptyContainer: { flex: 1, justifyContent: 'center' },
   empty:          { alignItems: 'center', paddingHorizontal: 40, gap: 12, paddingVertical: 60 },
-  emptyTitle:     { color: Brand.cream, fontSize: 18, fontFamily: 'ui-serif' },
-  emptySub:       { color: Brand.muted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  row:  { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    alignItems: 'center', justifyContent: 'center',
+  emptyTitle:     { color: Lux.cream, fontSize: 20, fontFamily: SERIF },
+  emptySub:       { color: Lux.muted, fontSize: 14, textAlign: 'center', lineHeight: 21, fontStyle: 'italic', fontFamily: SERIF },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: Lux.glass,
+    borderWidth: 1, borderColor: Lux.hairline,
+    borderRadius: 16, paddingVertical: 10, paddingHorizontal: 14, minHeight: 62,
   },
-  avatarText: { color: Brand.gold, fontSize: 15, fontWeight: '600' },
+  rowDivider: { width: 1, height: 30, backgroundColor: 'rgba(217,180,90,0.55)' },
   info:    { flex: 1, gap: 3 },
-  name:    { color: Brand.cream, fontSize: 16 },
-  chevron: { color: Brand.greenBorder, fontSize: 22 },
-  sep:     { height: 1, backgroundColor: Brand.greenBorder, marginLeft: 78, opacity: 0.4 },
+  name:    { color: Lux.cream, fontSize: 17, fontFamily: SERIF },
   fab: {
     position: 'absolute', right: 24,
-    width: 62, height: 62,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35, shadowRadius: 8,
+    width: 58, height: 58, borderRadius: 29,
+    shadowColor: '#E9C766', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35, shadowRadius: 10, elevation: 8,
   },
-  fabImage: { width: 62, height: 62 },
+  fabFace: {
+    width: 58, height: 58, borderRadius: 29,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: '#FBEBB5',
+  },
 });

@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
+import { Lux, SERIF, LuxButton, LuxBackHeader } from '@/components/lux';
 
 const PREFIXES = ['', 'Mr.', 'Mrs.', 'Ms.', 'Dr.', 'Prof.'];
 const SUFFIXES = ['', 'Jr.', 'Sr.', 'II', 'III', 'MD', 'PhD', 'Esq.'];
@@ -162,14 +163,10 @@ export default function ContactScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
 
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text style={styles.headerBack}>‹ Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>{isNew ? 'New Contact' : 'Edit Contact'}</Text>
-          <View style={{ width: 60 }} />
-        </View>
+        <LuxBackHeader
+          onBack={() => router.back()}
+          title={isNew ? 'New Person' : 'Edit Person'}
+        />
 
         <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
 
@@ -204,7 +201,7 @@ export default function ContactScreen() {
             {/* First / Last */}
             <View style={styles.row}>
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, { flex: 1, minWidth: 0 }]}
                 placeholder="First name *"
                 placeholderTextColor={Brand.muted}
                 selectionColor={Brand.gold}
@@ -213,7 +210,7 @@ export default function ContactScreen() {
                 autoCapitalize="words"
               />
               <TextInput
-                style={[styles.input, { flex: 1 }]}
+                style={[styles.input, { flex: 1, minWidth: 0 }]}
                 placeholder="Last name *"
                 placeholderTextColor={Brand.muted}
                 selectionColor={Brand.gold}
@@ -290,16 +287,12 @@ export default function ContactScreen() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.saveButton, saving && styles.saveButtonDisabled]}
+          <LuxButton
+            title={isNew ? 'Add person' : 'Save changes'}
             onPress={handleSave}
-            disabled={saving}
-          >
-            {saving
-              ? <ActivityIndicator color={Brand.green} />
-              : <Text style={styles.saveButtonText}>{isNew ? 'Add Contact' : 'Save Changes'}</Text>
-            }
-          </TouchableOpacity>
+            loading={saving}
+            style={{ marginTop: 8 }}
+          />
 
           {!isNew && (
             <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
@@ -374,37 +367,31 @@ function Field({ label, ...props }: { label: string } & React.ComponentProps<typ
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: Brand.greenBorder,
-  },
-  headerBack: { color: Brand.gold, fontSize: 17, width: 60 },
-  headerTitle: { color: Brand.cream, fontSize: 17, fontFamily: 'ui-serif' },
-  form: { padding: 24, gap: 20, paddingBottom: 60 },
+  form: { paddingHorizontal: 22, paddingTop: 8, gap: 20, paddingBottom: 60 },
   fieldWrapper: { gap: 8 },
-  fieldLabel: { color: Brand.muted, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' },
+  fieldLabel: { color: 'rgba(217,180,90,0.8)', fontSize: 10.5, letterSpacing: 2, textTransform: 'uppercase' },
   row: { flexDirection: 'row', gap: 10 },
   input: {
-    backgroundColor: Brand.greenMid, borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 10, paddingHorizontal: 16, paddingVertical: 13, fontSize: 16, color: Brand.cream,
+    backgroundColor: 'rgba(0,0,0,0.28)', borderWidth: 1, borderColor: 'rgba(217,180,90,0.38)',
+    borderRadius: 14, paddingHorizontal: 16, paddingVertical: 13, fontSize: 16, color: Lux.cream,
   },
   dropdownTrigger: {
-    backgroundColor: Brand.greenMid, borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 13,
+    backgroundColor: 'rgba(0,0,0,0.28)', borderWidth: 1, borderColor: 'rgba(217,180,90,0.38)',
+    borderRadius: 14, paddingHorizontal: 14, paddingVertical: 13,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
   },
-  dropdownValue: { color: Brand.cream, fontSize: 15 },
-  dropdownPlaceholder: { color: Brand.muted, fontSize: 15 },
-  dropdownChevron: { color: Brand.muted, fontSize: 12 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  dropdownValue: { color: Lux.cream, fontSize: 15 },
+  dropdownPlaceholder: { color: Lux.faint, fontSize: 15 },
+  dropdownChevron: { color: Lux.gold, fontSize: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modalSheet: {
-    backgroundColor: Brand.greenMid, borderTopLeftRadius: 16, borderTopRightRadius: 16,
-    paddingVertical: 8, maxHeight: 320,
+    backgroundColor: '#0B1A10', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.3)',
+    paddingVertical: 8, maxHeight: 340,
   },
   optionRow: { paddingHorizontal: 24, paddingVertical: 14 },
-  optionText: { color: Brand.cream, fontSize: 17 },
-  optionSelected: { color: Brand.gold, fontWeight: '600' },
+  optionText: { color: Lux.cream, fontSize: 18, fontFamily: SERIF },
+  optionSelected: { color: Lux.goldBright },
   birthdayRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   birthdayInputs: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   bdSegment: { width: 58, textAlign: 'center', paddingHorizontal: 8 },
@@ -415,12 +402,6 @@ const styles = StyleSheet.create({
     color: Brand.muted, fontSize: 11, fontStyle: 'italic',
     marginTop: -6, marginBottom: 2,
   },
-  saveButton: {
-    backgroundColor: Brand.gold, borderRadius: 10, paddingVertical: 15,
-    alignItems: 'center', marginTop: 8,
-  },
-  saveButtonDisabled: { opacity: 0.6 },
-  saveButtonText: { color: Brand.green, fontSize: 16, fontWeight: '600', letterSpacing: 0.5 },
   deleteButton: { alignItems: 'center', paddingVertical: 12 },
-  deleteButtonText: { color: '#C0392B', fontSize: 15 },
+  deleteButtonText: { color: Lux.danger, fontSize: 15, fontWeight: '600' },
 });

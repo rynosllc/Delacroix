@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
 import { BottomNavBar } from '@/components/BottomNavBar';
+import { Lux, SERIF, LuxRow, LuxButton, LuxInitials, LuxSectionHeader } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
 
@@ -63,17 +64,17 @@ export default function YouScreen() {
   const rows = [
     {
       label: 'Terms & Privacy Policy',
-      icon: '📄',
+      icon: 'document-text-outline' as const,
       onPress: () => router.push('/profile/terms'),
     },
     {
       label: 'Send Feedback',
-      icon: '✉️',
+      icon: 'mail-outline' as const,
       onPress: () => Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=DeLacroix%20feedback`),
     },
     {
       label: 'Rate DeLacroix',
-      icon: '★',
+      icon: 'star-outline' as const,
       onPress: () => Linking.openURL(APP_STORE_REVIEW_URL),
     },
   ];
@@ -88,35 +89,24 @@ export default function YouScreen() {
         >
           {/* Avatar block */}
           <View style={styles.avatarBlock}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
+            <View style={styles.avatarRing}>
+              <LuxInitials name={displayName || '?'} size={84} />
             </View>
-            <Text style={styles.name}>{displayName || '—'}</Text>
-            <Text style={styles.email}>{user?.email ?? ''}</Text>
+            <Text style={styles.name} maxFontSizeMultiplier={1.25}>{displayName || '—'}</Text>
+            <Text style={styles.email} maxFontSizeMultiplier={1.25}>{user?.email ?? ''}</Text>
           </View>
 
+          <LuxSectionHeader title="Account" />
+
           {/* Settings rows */}
-          <View style={styles.card}>
-            {rows.map((row, i) => (
-              <View key={row.label}>
-                <TouchableOpacity
-                  style={styles.row}
-                  onPress={row.onPress}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.rowIcon}>{row.icon}</Text>
-                  <Text style={styles.rowLabel}>{row.label}</Text>
-                  <Text style={styles.rowChevron}>›</Text>
-                </TouchableOpacity>
-                {i < rows.length - 1 && <View style={styles.rowSep} />}
-              </View>
+          <View style={styles.rows}>
+            {rows.map(row => (
+              <LuxRow key={row.label} icon={row.icon} title={row.label} onPress={row.onPress} />
             ))}
           </View>
 
           {/* Sign out — a real button, readable at a glance */}
-          <TouchableOpacity style={styles.signOut} onPress={signOut} activeOpacity={0.8}>
-            <Text style={styles.signOutText}>Sign Out</Text>
-          </TouchableOpacity>
+          <LuxButton title="Sign Out" variant="outline" onPress={signOut} />
 
           {/* Account deletion (required by App Store guideline 5.1.1) */}
           <TouchableOpacity
@@ -126,8 +116,8 @@ export default function YouScreen() {
             activeOpacity={0.8}
           >
             {deleting
-              ? <ActivityIndicator color="#C0392B" />
-              : <Text style={styles.deleteText}>Delete Account</Text>}
+              ? <ActivityIndicator color={Lux.danger} />
+              : <Text style={styles.deleteText} maxFontSizeMultiplier={1.25}>Delete Account</Text>}
           </TouchableOpacity>
         </ScrollView>
 
@@ -138,37 +128,18 @@ export default function YouScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingHorizontal: 20, gap: 20, paddingBottom: 32 },
+  scroll: { paddingHorizontal: 22, gap: 20, paddingBottom: 32 },
 
-  avatarBlock: { alignItems: 'center', gap: 8, paddingTop: 8 },
-  avatar: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: 'rgba(36, 51, 39, 0.9)',
-    borderWidth: 1.5, borderColor: 'rgba(212, 175, 55, 0.5)',
-    alignItems: 'center', justifyContent: 'center',
+  avatarBlock: { alignItems: 'center', gap: 8, paddingTop: 10 },
+  avatarRing: {
+    padding: 5, borderRadius: 52,
+    borderWidth: 1.5, borderColor: Lux.gold,
   },
-  avatarText:  { color: Brand.gold, fontSize: 26, fontWeight: '600' },
-  name:        { color: Brand.cream, fontSize: 20, fontFamily: 'ui-serif' },
-  email:       { color: Brand.cream, fontSize: 13, opacity: 0.8 },
+  name:        { color: Lux.cream, fontSize: 26, fontFamily: SERIF, marginTop: 4 },
+  email:       { color: Lux.muted, fontSize: 13, letterSpacing: 0.3 },
 
-  card: {
-    backgroundColor: 'rgba(36, 51, 39, 0.82)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 14, overflow: 'hidden',
-  },
-  row:      { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 15, gap: 12 },
-  rowIcon:  { fontSize: 18, width: 24, textAlign: 'center' },
-  rowLabel: { flex: 1, color: Brand.cream, fontSize: 15 },
-  rowChevron: { color: Brand.gold, fontSize: 18 },
-  rowSep:   { height: 1, backgroundColor: Brand.greenBorder, marginHorizontal: 16 },
-
-  signOut: {
-    height: 50,
-    borderWidth: 1.5, borderColor: '#D4AF37', borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  signOutText: { color: '#D4AF37', fontSize: 15, fontWeight: '600', letterSpacing: 0.5 },
+  rows: { gap: 10 },
 
   deleteBtn: { alignItems: 'center', paddingVertical: 10 },
-  deleteText: { color: '#D96A5E', fontSize: 14, fontWeight: '600' },
+  deleteText: { color: Lux.danger, fontSize: 14, fontWeight: '600' },
 });

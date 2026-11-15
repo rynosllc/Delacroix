@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, ImageBackground,
-  ActivityIndicator, Animated, Platform, TextInput, Alert, Linking,
+  View, Text, TouchableOpacity, StyleSheet, ImageBackground, Image,
+  ActivityIndicator, Animated, Platform, TextInput, Alert, Linking, ScrollView,
 } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { Brand } from '@/constants/brand';
+import { Lux, SERIF, T, LuxButton, luxStyles } from '@/components/lux';
 
 const BG = require('../../../assets/background.png');
+const LOCKUP = require('../../../assets/images/ui/brand-lockup.png');
+const ENVELOPE = require('../../../assets/images/ui/envelope.png');
 
 // Shown to web visitors only AFTER they've claimed — the gift itself is
 // never gated behind an app download.
@@ -27,6 +30,15 @@ interface ClaimGift {
   cash_amount: number | null;
   status: string;
   has_thank_you: boolean;
+  cash_ready?: boolean;
+  payout_status?: string;
+}
+
+// Stripe sends the recipient back to this page with ?payout=return once their
+// payout details are in.
+function returnedFromPayoutSetup(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  return new URLSearchParams(window.location.search).get('payout') === 'return';
 }
 
 export default function ClaimScreen() {
@@ -39,6 +51,8 @@ export default function ClaimScreen() {
   const [acting, setActing]   = useState(false);
   const [thanksText, setThanksText] = useState('');
   const [thanksSent, setThanksSent] = useState(false);
+  const [payoutBusy, setPayoutBusy] = useState(false);
+  const [payoutNote, setPayoutNote] = useState('');
 
   const envelopeFade = useRef(new Animated.Value(1)).current;
   const messageFade  = useRef(new Animated.Value(0)).current;
@@ -49,8 +63,16 @@ export default function ClaimScreen() {
     supabase.functions
       .invoke('get-gift-by-token', { body: { token } })
       .then(({ data, error }) => {
-        if (error || !data || data.error) setNotFound(true);
-        else setGift(data as ClaimGift);
+        if (error || !data || data.error) { setNotFound(true); return; }
+        const g = data as ClaimGift;
+        setGift(g);
+        // Coming back from payout setup: skip the envelope and finish the transfer
+        if (returnedFromPayoutSetup() && g.status === 'claimed') {
+          setOpened(true);
+          messageFade.setValue(1);
+          messageRise.setValue(0);
+          if (g.payout_status !== 'paid') completePayout();
+        }
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -99,6 +121,44 @@ export default function ClaimScreen() {
     }
   }
 
+  // Cash is paid out through Stripe: the first tap opens Stripe's secure
+  // payout setup; on return the transfer is released.
+  async function startPayout() {
+    setPayoutBusy(true);
+    setPayoutNote('');
+    const { data, error } = await supabase.functions.invoke('claim-page', {
+      body: { token, action: 'setup_payout' },
+    });
+    setPayoutBusy(false);
+    if (error || !data?.url) {
+      // The server explains itself (payment still clearing, already paid out…)
+      let reason = '';
+      try { reason = (await (error as any)?.context?.json?.())?.error ?? ''; } catch { /* no body */ }
+      if (/already paid/i.test(reason)) {
+        setGift(g => (g ? { ...g, payout_status: 'paid' } : g));
+        return;
+      }
+      setPayoutNote(reason || 'We couldn’t start your payout just now. Please try again in a moment.');
+      return;
+    }
+    if (Platform.OS === 'web' && typeof window !== 'undefined') window.location.href = data.url;
+    else Linking.openURL(data.url);
+  }
+
+  async function completePayout() {
+    setPayoutBusy(true);
+    const { data, error } = await supabase.functions.invoke('claim-page', {
+      body: { token, action: 'complete_payout' },
+    });
+    setPayoutBusy(false);
+    if (error || !data?.ok) {
+      setPayoutNote('Your payout details aren’t finished yet — tap below to continue.');
+      return;
+    }
+    setPayoutNote('');
+    setGift(g => (g ? { ...g, payout_status: 'paid' } : g));
+  }
+
   function openEnvelope() {
     if (opened) return;
     setOpened(true);
@@ -114,7 +174,7 @@ export default function ClaimScreen() {
   if (loading) {
     return (
       <ImageBackground source={BG} style={styles.bg} resizeMode="cover">
-        <View style={styles.center}><ActivityIndicator color={Brand.gold} /></View>
+        <View style={styles.center}><ActivityIndicator color={Lux.gold} /></View>
       </ImageBackground>
     );
   }
@@ -153,31 +213,39 @@ export default function ClaimScreen() {
     );
   }
 
+  const cash = gift.cash_amount ? `$${Number(gift.cash_amount).toFixed(2)}` : '';
+  const paidOut = gift.payout_status === 'paid';
+
   return (
     <ImageBackground source={BG} style={styles.bg} resizeMode="cover">
-      <View style={styles.page}>
+      <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         <View style={styles.container}>
 
-          <Text style={styles.wordmark}>DeLacroix</Text>
+          <Image source={LOCKUP} style={styles.lockup} resizeMode="contain" accessibilityLabel="DeLacroix" />
 
-          <Text style={styles.headline}>
-            {gift.sender_name} sent you a gift
-          </Text>
-          <Text style={styles.occasion}>
-            for {OCCASION_LABELS[gift.occasion] ?? gift.occasion} moment
-          </Text>
+          <T style={styles.occasion}>
+            {`FOR ${(OCCASION_LABELS[gift.occasion] ?? gift.occasion).toUpperCase()} MOMENT`}
+          </T>
+          <T style={styles.headline}>{gift.sender_name} sent you a gift</T>
+          <View style={styles.ruleRow}>
+            <View style={styles.rule} />
+            <Ionicons name="heart" size={9} color={Lux.gold} />
+            <View style={styles.rule} />
+          </View>
 
-          {/* Envelope — tap to open. REPLACE WITH CUSTOM ASSET LATER */}
+          {/* Envelope — tap to open */}
           {!opened && (
-            <Animated.View style={{ opacity: envelopeFade }}>
+            <Animated.View style={[styles.envelopeWrap, { opacity: envelopeFade }]}>
               <TouchableOpacity
                 style={styles.envelope}
                 onPress={openEnvelope}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Open your gift"
               >
-                <Text style={styles.envelopeIcon}>✉️</Text>
-                <Text style={styles.envelopeHint}>Tap to open</Text>
+                <Image source={ENVELOPE} style={styles.envelopeImage} resizeMode="cover" />
               </TouchableOpacity>
+              <LuxButton title="Open your gift" chevron onPress={openEnvelope} style={{ width: '100%' }} />
             </Animated.View>
           )}
 
@@ -189,92 +257,100 @@ export default function ClaimScreen() {
                 { opacity: messageFade, transform: [{ translateY: messageRise }] },
               ]}
             >
-              <View style={styles.messageDividerTop} />
-              <Text style={styles.messageText}>{gift.message_text}</Text>
-              <Text style={styles.messageFrom}>— {gift.sender_name}</Text>
+              <Ionicons name="heart" size={14} color={Lux.gold} />
+              <T style={styles.messageText}>{gift.message_text}</T>
+              <T style={styles.messageFrom}>— {gift.sender_name}</T>
 
               {gift.cash_amount ? (
-                <Text style={styles.cashText}>
-                  They also sent you{' '}
-                  <Text style={styles.cashAmount}>
-                    ${Number(gift.cash_amount).toFixed(2)}
-                  </Text>
-                </Text>
+                <View style={styles.cashPlate}>
+                  <T style={luxStyles.eyebrow}>TUCKED INSIDE</T>
+                  <T style={styles.cashAmount}>{cash}</T>
+                </View>
               ) : null}
 
               {gift.status === 'sent' && (
-                <View style={styles.cashBlock}>
-                  {/* REPLACE WITH CUSTOM ASSET LATER — Stripe payout comes next phase */}
-                  <TouchableOpacity
-                    style={[styles.claimBtn, acting && { opacity: 0.6 }]}
+                <View style={styles.actionBlock}>
+                  <LuxButton
+                    title="Claim your gift"
                     onPress={handleClaim}
-                    disabled={acting}
-                    activeOpacity={0.85}
-                  >
-                    {acting
-                      ? <ActivityIndicator color="#1B3A2B" />
-                      : <Text style={styles.claimBtnText}>Claim your gift</Text>}
-                  </TouchableOpacity>
+                    loading={acting}
+                    style={{ width: '100%' }}
+                  />
                   <TouchableOpacity onPress={handleDecline} disabled={acting} activeOpacity={0.7}>
-                    <Text style={styles.declineText}>Politely decline</Text>
+                    <T style={styles.declineText}>Politely decline</T>
                   </TouchableOpacity>
                 </View>
               )}
 
+              {/* Cash payout */}
+              {gift.status === 'claimed' && gift.cash_amount ? (
+                <View style={styles.actionBlock}>
+                  {paidOut ? (
+                    <T style={styles.doneNote}>
+                      {cash} is on its way to your bank. It usually arrives in 1–2 business days.
+                    </T>
+                  ) : (
+                    <>
+                      <LuxButton
+                        title={`Collect your ${cash}`}
+                        onPress={startPayout}
+                        loading={payoutBusy}
+                        style={{ width: '100%' }}
+                      />
+                      <T style={styles.fineNote}>
+                        {payoutNote || 'Paid securely to your bank through Stripe.'}
+                      </T>
+                    </>
+                  )}
+                </View>
+              ) : null}
+
               {gift.status === 'claimed' && !gift.has_thank_you && !thanksSent && (
-                <View style={styles.cashBlock}>
-                  <Text style={styles.thanksPrompt}>
-                    Send {gift.sender_name} a thank-you?
-                  </Text>
+                <View style={styles.actionBlock}>
+                  <T style={styles.thanksPrompt}>Send {gift.sender_name} a thank-you?</T>
                   <TextInput
                     style={styles.thanksInput}
                     placeholder="Write a short thank-you…"
-                    placeholderTextColor={Brand.muted}
-                    selectionColor={Brand.gold}
+                    placeholderTextColor={Lux.faint}
+                    selectionColor={Lux.gold}
                     multiline
                     value={thanksText}
                     onChangeText={setThanksText}
                     textAlignVertical="top"
+                    maxFontSizeMultiplier={1.25}
                   />
-                  <TouchableOpacity
-                    style={[styles.claimBtn, (acting || !thanksText.trim()) && { opacity: 0.6 }]}
+                  <LuxButton
+                    title="Send thank-you"
+                    variant="outline"
                     onPress={handleThankYou}
-                    disabled={acting || !thanksText.trim()}
-                    activeOpacity={0.85}
-                  >
-                    {acting
-                      ? <ActivityIndicator color="#1B3A2B" />
-                      : <Text style={styles.claimBtnText}>Send thank-you</Text>}
-                  </TouchableOpacity>
+                    loading={acting}
+                    disabled={!thanksText.trim()}
+                    style={{ width: '100%' }}
+                  />
                 </View>
               )}
 
               {gift.status === 'claimed' && (gift.has_thank_you || thanksSent) && (
-                <Text style={styles.thanksDone}>
-                  Your thank-you is on its way to {gift.sender_name}. ✓
-                </Text>
+                <T style={styles.doneNote}>
+                  Your thank-you is on its way to {gift.sender_name}.
+                </T>
               )}
 
               {gift.status === 'claimed' && Platform.OS === 'web' && (
                 <View style={styles.downloadBlock}>
-                  <Text style={styles.downloadHint}>
-                    Send gifts of your own, from the heart.
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.downloadBtn}
+                  <T style={styles.fineNote}>Send gifts of your own, from the heart.</T>
+                  <LuxButton
+                    title="Download DeLacroix"
+                    variant="outline"
                     onPress={() => Linking.openURL(APP_STORE_URL)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.downloadBtnText}>Download DeLacroix</Text>
-                  </TouchableOpacity>
+                    style={{ width: '100%' }}
+                  />
                 </View>
               )}
             </Animated.View>
           )}
-
-          <Text style={styles.footer}>it's from the heart</Text>
         </View>
-      </View>
+      </ScrollView>
     </ImageBackground>
   );
 }
@@ -283,9 +359,9 @@ function StatusScreen({ title, sub }: { title: string; sub: string }) {
   return (
     <ImageBackground source={BG} style={styles.bg} resizeMode="cover">
       <View style={styles.center}>
-        <Text style={styles.wordmark}>DeLacroix</Text>
-        <Text style={styles.notFoundTitle}>{title}</Text>
-        <Text style={styles.notFoundSub}>{sub}</Text>
+        <Image source={LOCKUP} style={styles.lockup} resizeMode="contain" accessibilityLabel="DeLacroix" />
+        <Text style={styles.statusTitle}>{title}</Text>
+        <Text style={styles.statusSub}>{sub}</Text>
       </View>
     </ImageBackground>
   );
@@ -294,74 +370,64 @@ function StatusScreen({ title, sub }: { title: string; sub: string }) {
 const styles = StyleSheet.create({
   bg:     { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24 },
-  page:   { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  page:   { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 24, paddingVertical: 40 },
   container: {
-    width: '100%', maxWidth: 480,
+    width: '100%', maxWidth: 440,
     alignItems: 'center', gap: 12,
   },
 
-  wordmark: { fontFamily: 'ui-serif', fontSize: 26, color: Brand.gold, letterSpacing: 2.5, marginBottom: 18 },
-  headline: { color: Brand.cream, fontSize: 26, fontFamily: 'ui-serif', textAlign: 'center', letterSpacing: 0.5 },
-  occasion: { color: 'rgba(212,175,55,0.7)', fontSize: 14, fontStyle: 'italic', marginBottom: 24 },
+  lockup: { width: 236, height: 190, marginBottom: 6 },
+  occasion: { color: 'rgba(217,180,90,0.8)', fontSize: 11, letterSpacing: 2.5 },
+  headline: { color: Lux.cream, fontSize: 28, fontFamily: SERIF, textAlign: 'center', letterSpacing: 0.5 },
+  ruleRow:  { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  rule:     { width: 46, height: 1, backgroundColor: Lux.line },
 
+  envelopeWrap: { width: '100%', alignItems: 'center', gap: 18 },
+  // Wrapper carries the size; RN-web ignores aspectRatio on the image itself.
   envelope: {
-    width: 260, height: 180,
-    backgroundColor: 'rgba(212, 175, 55, 0.08)',
-    borderWidth: 1.5, borderColor: 'rgba(212, 175, 55, 0.5)',
-    borderRadius: 16,
-    alignItems: 'center', justifyContent: 'center', gap: 10,
+    width: '100%', aspectRatio: 863 / 384,
+    borderRadius: 18, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.4)',
   },
-  envelopeIcon: { fontSize: 56 },
-  envelopeHint: { color: Brand.gold, fontSize: 13, letterSpacing: 1 },
+  envelopeImage: { width: '100%', height: '100%' },
 
   messageCard: {
     width: '100%',
-    backgroundColor: 'rgba(36, 51, 39, 0.9)',
-    borderWidth: 1, borderColor: 'rgba(212, 175, 55, 0.45)',
-    borderRadius: 16, padding: 28, gap: 16, alignItems: 'center',
+    backgroundColor: Lux.glass,
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.4)',
+    borderRadius: 18, padding: 26, gap: 16, alignItems: 'center',
   },
-  messageDividerTop: { width: 40, height: 1, backgroundColor: 'rgba(212,175,55,0.5)' },
   messageText: {
-    color: Brand.cream, fontSize: 17, lineHeight: 27,
-    textAlign: 'center', fontFamily: 'ui-serif',
+    color: Lux.cream, fontSize: 19, lineHeight: 29,
+    textAlign: 'center', fontFamily: SERIF,
   },
-  messageFrom: { color: Brand.gold, fontSize: 14, fontStyle: 'italic' },
+  messageFrom: { color: Lux.gold, fontSize: 15, fontStyle: 'italic', fontFamily: SERIF },
 
-  cashBlock:  { alignItems: 'center', gap: 14, marginTop: 8, width: '100%' },
-  cashText:   { color: Brand.cream, fontSize: 15 },
-  cashAmount: { color: Brand.gold, fontWeight: '700', fontSize: 17 },
-  claimBtn: {
-    height: 52, width: '100%', maxWidth: 300,
-    backgroundColor: '#D4AF37', borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
+  cashPlate: {
+    alignItems: 'center', gap: 4, alignSelf: 'stretch',
+    paddingVertical: 14, borderRadius: 14,
+    borderWidth: 1, borderColor: Lux.hairline,
+    backgroundColor: 'rgba(217,180,90,0.07)',
   },
-  claimBtnText: { color: '#1B3A2B', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
-  declineText:  { color: 'rgba(212,175,55,0.65)', fontSize: 13, textDecorationLine: 'underline' },
+  cashAmount: { color: Lux.goldBright, fontSize: 34, fontFamily: SERIF },
 
-  thanksPrompt: { color: Brand.muted, fontSize: 14 },
+  actionBlock: { alignItems: 'center', gap: 12, marginTop: 4, width: '100%' },
+  declineText: { color: 'rgba(217,180,90,0.75)', fontSize: 13, textDecorationLine: 'underline' },
+  fineNote:    { color: Lux.muted, fontSize: 13, fontStyle: 'italic', textAlign: 'center', lineHeight: 19 },
+  doneNote:    { color: Lux.cream, fontSize: 15, fontStyle: 'italic', textAlign: 'center', lineHeight: 22, fontFamily: SERIF },
+
+  thanksPrompt: { color: Lux.muted, fontSize: 15, fontFamily: SERIF, fontStyle: 'italic' },
   thanksInput: {
-    width: '100%',
-    backgroundColor: 'rgba(28, 43, 30, 0.7)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 10, padding: 12, fontSize: 15,
-    color: Brand.cream, minHeight: 90,
+    ...luxStyles.input,
+    width: '100%', minHeight: 96, fontSize: 16, fontFamily: SERIF,
   },
-  thanksDone: { color: Brand.muted, fontSize: 14, fontStyle: 'italic', marginTop: 8 },
 
   downloadBlock: {
-    width: '100%', alignItems: 'center', gap: 10,
-    marginTop: 20, paddingTop: 18,
-    borderTopWidth: 1, borderTopColor: 'rgba(212,175,55,0.25)',
+    width: '100%', alignItems: 'center', gap: 12,
+    marginTop: 14, paddingTop: 18,
+    borderTopWidth: 1, borderTopColor: Lux.hairline,
   },
-  downloadHint: { color: Brand.muted, fontSize: 13, fontStyle: 'italic' },
-  downloadBtn: {
-    height: 48, width: '100%', maxWidth: 300,
-    borderWidth: 1.5, borderColor: '#D4AF37', borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  downloadBtnText: { color: Brand.gold, fontSize: 14, fontWeight: '600', letterSpacing: 1 },
 
-  notFoundTitle: { color: Brand.cream, fontSize: 20, fontFamily: 'ui-serif', textAlign: 'center' },
-  notFoundSub:   { color: Brand.muted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
-  footer: { color: 'rgba(212,175,55,0.45)', fontSize: 12, fontStyle: 'italic', letterSpacing: 1, marginTop: 28 },
+  statusTitle: { color: Lux.cream, fontSize: 24, fontFamily: SERIF, textAlign: 'center' },
+  statusSub:   { color: Lux.muted, fontSize: 15, textAlign: 'center', lineHeight: 22, maxWidth: 360 },
 });

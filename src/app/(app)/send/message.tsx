@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
+  View, TouchableOpacity, StyleSheet, SafeAreaView,
   ImageBackground, TextInput, ScrollView,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Brand } from '@/constants/brand';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
+import { Lux, SERIF, T, LuxButton, luxStyles } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
 
@@ -65,91 +65,90 @@ export default function MessageStep() {
           <SendFlowHeader
             step={3}
             title="Your message"
+            subtitle={params.recipientName ? `To ${params.recipientName}` : undefined}
             onBack={() => router.back()}
           />
 
-          {/* Tab toggle */}
-          <View style={styles.tabRow}>
-            <TouchableOpacity
-              style={[styles.tabBtn, tab === 'self' && styles.tabBtnActive]}
-              onPress={() => setTab('self')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.tabLabel, tab === 'self' && styles.tabLabelActive]}>
-                Write it myself
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tabBtn, tab === 'ai' && styles.tabBtnActive]}
-              onPress={() => setTab('ai')}
-              activeOpacity={0.7}
-            >
-              <Text style={[styles.tabLabel, tab === 'ai' && styles.tabLabelActive]}>
-                Help me write it
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {tab === 'self' ? (
-            <TextInput
-              style={styles.textArea}
-              placeholder="Write your personal message here…"
-              placeholderTextColor={Brand.muted}
-              selectionColor={Brand.gold}
-              multiline
-              numberOfLines={6}
-              value={message}
-              onChangeText={setMessage}
-              textAlignVertical="top"
-            />
-          ) : (
-            <View style={styles.aiSection}>
-              <Text style={styles.aiHint}>Answer a few prompts and we'll craft a message:</Text>
-              {AI_PROMPTS.map(prompt => (
-                <View key={prompt} style={styles.aiPromptBlock}>
-                  {/* REPLACE WITH CUSTOM ASSET LATER */}
-                  <Text style={styles.aiPromptLabel}>{prompt}</Text>
-                  <TextInput
-                    style={styles.aiInput}
-                    placeholder="Your answer…"
-                    placeholderTextColor={Brand.muted}
-                    selectionColor={Brand.gold}
-                    value={aiAnswers[prompt] ?? ''}
-                    onChangeText={v => setAiAnswers(p => ({ ...p, [prompt]: v }))}
-                  />
-                </View>
-              ))}
-
-              {/* REPLACE WITH CUSTOM ASSET LATER */}
-              <TouchableOpacity style={styles.generateBtn} onPress={handleGenerate} activeOpacity={0.85}>
-                <Text style={styles.generateBtnText}>Generate Message</Text>
+          <View style={styles.body}>
+            {/* Tab toggle */}
+            <View style={styles.tabRow}>
+              <TouchableOpacity
+                style={[styles.tabBtn, tab === 'self' && styles.tabBtnActive]}
+                onPress={() => setTab('self')}
+                activeOpacity={0.7}
+              >
+                <T style={[styles.tabLabel, tab === 'self' && styles.tabLabelActive]}>
+                  WRITE IT MYSELF
+                </T>
               </TouchableOpacity>
-
-              {generated ? (
-                <View style={styles.generatedCard}>
-                  <Text style={styles.generatedLabel}>YOUR MESSAGE</Text>
-                  <TextInput
-                    style={styles.generatedText}
-                    multiline
-                    value={message || generated}
-                    onChangeText={setMessage}
-                    selectionColor={Brand.gold}
-                    textAlignVertical="top"
-                  />
-                </View>
-              ) : null}
+              <TouchableOpacity
+                style={[styles.tabBtn, tab === 'ai' && styles.tabBtnActive]}
+                onPress={() => setTab('ai')}
+                activeOpacity={0.7}
+              >
+                <T style={[styles.tabLabel, tab === 'ai' && styles.tabLabelActive]}>
+                  HELP ME WRITE IT
+                </T>
+              </TouchableOpacity>
             </View>
-          )}
 
-          {/* REPLACE WITH CUSTOM ASSET LATER */}
-          <TouchableOpacity
-            style={[styles.nextBtn, !(message || generated) && styles.nextBtnDisabled]}
-            onPress={onNext}
-            disabled={!message && !generated}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.nextBtnText}>Next</Text>
-          </TouchableOpacity>
+            {tab === 'self' ? (
+              <TextInput
+                style={styles.textArea}
+                placeholder="Write from the heart…"
+                placeholderTextColor={Lux.faint}
+                selectionColor={Lux.gold}
+                multiline
+                numberOfLines={6}
+                value={message}
+                onChangeText={setMessage}
+                textAlignVertical="top"
+                maxFontSizeMultiplier={1.25}
+              />
+            ) : (
+              <View style={styles.aiSection}>
+                <T style={luxStyles.hint}>Answer a few prompts and we’ll craft a message.</T>
+                {AI_PROMPTS.map(prompt => (
+                  <View key={prompt} style={styles.aiPromptBlock}>
+                    <T style={luxStyles.eyebrow}>{prompt.toUpperCase()}</T>
+                    <TextInput
+                      style={luxStyles.input}
+                      placeholder="Your answer…"
+                      placeholderTextColor={Lux.faint}
+                      selectionColor={Lux.gold}
+                      value={aiAnswers[prompt] ?? ''}
+                      onChangeText={v => setAiAnswers(p => ({ ...p, [prompt]: v }))}
+                      maxFontSizeMultiplier={1.25}
+                    />
+                  </View>
+                ))}
+
+                <LuxButton title="Generate message" variant="outline" onPress={handleGenerate} />
+
+                {generated ? (
+                  <View style={styles.generatedCard}>
+                    <T style={luxStyles.eyebrow}>YOUR MESSAGE</T>
+                    <TextInput
+                      style={styles.generatedText}
+                      multiline
+                      value={message || generated}
+                      onChangeText={setMessage}
+                      selectionColor={Lux.gold}
+                      textAlignVertical="top"
+                      maxFontSizeMultiplier={1.25}
+                    />
+                  </View>
+                ) : null}
+              </View>
+            )}
+
+            <LuxButton
+              title="Next"
+              chevron
+              onPress={onNext}
+              disabled={!message && !generated}
+            />
+          </View>
         </ScrollView>
       </SafeAreaView>
     </ImageBackground>
@@ -158,49 +157,28 @@ export default function MessageStep() {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  scroll: { padding: 20, gap: 16, paddingBottom: 40 },
+  scroll: { paddingBottom: 40 },
+  body:   { paddingHorizontal: 22, gap: 18 },
 
   tabRow: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(36, 51, 39, 0.7)',
-    borderRadius: 10, padding: 4, gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderWidth: 1, borderColor: Lux.hairline,
+    borderRadius: 14, padding: 4, gap: 4,
   },
-  tabBtn:        { flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center' },
-  tabBtnActive:  { backgroundColor: 'rgba(212, 175, 55, 0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
-  tabLabel:      { color: Brand.muted, fontSize: 13, fontWeight: '600' },
-  tabLabelActive:{ color: Brand.gold },
+  tabBtn:        { flex: 1, paddingVertical: 11, borderRadius: 10, alignItems: 'center' },
+  tabBtnActive:  { backgroundColor: 'rgba(217,180,90,0.14)', borderWidth: 1, borderColor: 'rgba(217,180,90,0.45)' },
+  tabLabel:      { color: Lux.muted, fontSize: 11, fontWeight: '600', letterSpacing: 1.5 },
+  tabLabelActive:{ color: Lux.goldBright },
 
   textArea: {
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 12, padding: 16, fontSize: 16,
-    color: Brand.cream, minHeight: 140,
+    ...luxStyles.input,
+    padding: 18, fontSize: 18, lineHeight: 26,
+    fontFamily: SERIF, minHeight: 190,
   },
 
   aiSection:     { gap: 16 },
-  aiHint:        { color: Brand.muted, fontSize: 13, fontStyle: 'italic' },
-  aiPromptBlock: { gap: 6 },
-  aiPromptLabel: { color: Brand.gold, fontSize: 13, fontWeight: '600' },
-  aiInput: {
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 11,
-    fontSize: 15, color: Brand.cream,
-  },
-  generateBtn: {
-    height: 52, backgroundColor: '#D4AF37',
-    borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-  },
-  generateBtnText: { color: '#1B3A2B', fontSize: 15, fontWeight: '700', letterSpacing: 1 },
-  generatedCard: {
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)',
-    borderRadius: 12, padding: 16, gap: 8,
-  },
-  generatedLabel: { color: 'rgba(212,175,55,0.55)', fontSize: 10, letterSpacing: 1.5 },
-  generatedText:  { color: Brand.cream, fontSize: 15, lineHeight: 22, minHeight: 80 },
-
-  nextBtn:         { height: 56, backgroundColor: '#D4AF37', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  nextBtnDisabled: { opacity: 0.4 },
-  nextBtnText:     { color: '#1B3A2B', fontSize: 16, fontWeight: '700', letterSpacing: 1.5 },
+  aiPromptBlock: { gap: 8 },
+  generatedCard: { ...luxStyles.card, padding: 16, gap: 8 },
+  generatedText: { color: Lux.cream, fontSize: 17, lineHeight: 25, minHeight: 90, fontFamily: SERIF },
 });

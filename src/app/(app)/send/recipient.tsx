@@ -1,22 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  View, Text, FlatList, TouchableOpacity, StyleSheet,
-  SafeAreaView, ActivityIndicator, ImageBackground, TextInput, Image,
+  View, FlatList, StyleSheet,
+  SafeAreaView, ActivityIndicator, ImageBackground, TextInput,
 } from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
-import { Brand } from '@/constants/brand';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
+import { Lux, T, LuxRow, LuxButton, luxStyles } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
-const ADD_BUTTON = require('../../../../assets/images/nav/add.png');
 
 interface Contact {
   id: string; display_name: string; relation: string | null; email: string | null;
-}
-
-function initials(name: string) {
-  return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 }
 
 export default function RecipientStep() {
@@ -78,49 +74,49 @@ export default function RecipientStep() {
           onBack={() => router.back()}
         />
 
-        <TextInput
-          style={styles.search}
-          placeholder="Search contacts…"
-          placeholderTextColor={Brand.muted}
-          selectionColor={Brand.gold}
-          value={search}
-          onChangeText={setSearch}
-          autoCapitalize="none"
-          clearButtonMode="while-editing"
-        />
+        <View style={styles.searchWrap}>
+          <Ionicons name="search" size={17} color={Lux.gold} />
+          <TextInput
+            style={styles.search}
+            placeholder="Search your people"
+            placeholderTextColor={Lux.faint}
+            selectionColor={Lux.gold}
+            value={search}
+            onChangeText={setSearch}
+            autoCapitalize="none"
+            clearButtonMode="while-editing"
+            maxFontSizeMultiplier={1.25}
+          />
+        </View>
 
         {loading ? (
-          <View style={styles.center}><ActivityIndicator color={Brand.gold} /></View>
+          <View style={styles.center}><ActivityIndicator color={Lux.gold} /></View>
         ) : (
           <FlatList
             data={filtered}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.list}
             ListEmptyComponent={
-              <Text style={styles.empty}>No contacts found</Text>
+              <T style={[luxStyles.hint, { marginVertical: 28 }]}>
+                {search ? 'No one by that name yet' : 'Add your first person to begin'}
+              </T>
             }
             renderItem={({ item }) => (
-              <TouchableOpacity style={styles.row} onPress={() => select(item)} activeOpacity={0.7}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{initials(item.display_name)}</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.name}>{item.display_name}</Text>
-                  {item.relation && <Text style={styles.sub}>{item.relation}</Text>}
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </TouchableOpacity>
+              <LuxRow
+                title={item.display_name}
+                sub={item.relation ?? undefined}
+                initialsOf={item.display_name}
+                onPress={() => select(item)}
+              />
             )}
-            ItemSeparatorComponent={() => <View style={styles.sep} />}
+            ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
             ListFooterComponent={
-              <TouchableOpacity
-                style={styles.addNew}
+              <LuxButton
+                title="Add new person"
+                variant="outline"
                 onPress={() => router.push('/contact/new')}
-                activeOpacity={0.7}
-              >
-                <Image source={ADD_BUTTON} style={styles.addNewIcon} resizeMode="contain" />
-                <Text style={styles.addNewText}>Add new person</Text>
-              </TouchableOpacity>
+                style={{ marginTop: 18 }}
+              />
             }
           />
         )}
@@ -131,33 +127,12 @@ export default function RecipientStep() {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  search: {
-    marginHorizontal: 20, marginBottom: 8,
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
-    fontSize: 15, color: Brand.cream,
+  searchWrap: {
+    ...luxStyles.input,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 22, marginBottom: 14, paddingVertical: 0, height: 48,
   },
+  search: { flex: 1, fontSize: 16, color: Lux.cream, height: '100%' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list:   { paddingBottom: 40 },
-  empty:  { color: Brand.muted, textAlign: 'center', marginTop: 40, fontStyle: 'italic' },
-  row:    { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, gap: 14 },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  avatarText: { color: Brand.gold, fontSize: 15, fontWeight: '600' },
-  name:    { color: Brand.cream, fontSize: 16 },
-  sub:     { color: Brand.muted, fontSize: 13, marginTop: 1 },
-  chevron: { color: Brand.greenBorder, fontSize: 22 },
-  sep:     { height: 1, backgroundColor: Brand.greenBorder, marginLeft: 78, opacity: 0.4 },
-  addNew: {
-    margin: 20, paddingVertical: 16,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
-    borderTopWidth: 1, borderTopColor: Brand.greenBorder,
-  },
-  addNewIcon: { width: 26, height: 26 },
-  addNewText: { color: Brand.gold, fontSize: 15 },
+  list:   { paddingHorizontal: 22, paddingBottom: 40 },
 });

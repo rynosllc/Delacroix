@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
+  View, StyleSheet, SafeAreaView,
   ImageBackground, TextInput, ScrollView, Animated,
   Platform,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Brand } from '@/constants/brand';
 import { isLuckyAmount } from '@/lib/luck';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
+import { Lux, SERIF, T, LuxButton, luxStyles } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
 
+// Same rounding as the create-gift function, so the total shown here is the
+// total charged.
 function calcFee(amount: number): { fee: number; total: number } {
-  const fee  = Math.ceil((amount * 0.029 + 0.30) * 100) / 100;
+  const fee  = Math.round((amount * 0.029 + 0.30) * 100) / 100;
   const total = Math.round((amount + fee) * 100) / 100;
   return { fee, total };
 }
@@ -28,7 +30,7 @@ export default function GiftAmountStep() {
   const [amountStr, setAmountStr] = useState(params.giftAmount ?? '');
   const amount  = parseFloat(amountStr) || 0;
   const { fee, total } = calcFee(amount);
-  const valid   = amount >= 5;
+  const valid   = amount >= 5 && amount <= 2000;
 
   // Repdigit amounts ($5.55, $77.77…) glitter for a moment
   const lucky = isLuckyAmount(amountStr);
@@ -64,67 +66,67 @@ export default function GiftAmountStep() {
           <SendFlowHeader
             step={5}
             title="Add a cash gift"
+            subtitle="Optional — tuck something inside the envelope."
             onBack={() => router.back()}
           />
 
-          <View style={styles.inputWrap}>
-            <Text style={styles.dollarSign}>$</Text>
-            <TextInput
-              style={styles.amountInput}
-              placeholder="0.00"
-              placeholderTextColor="rgba(212,175,55,0.3)"
-              selectionColor={Brand.gold}
-              value={amountStr}
-              onChangeText={v => setAmountStr(v.replace(/[^0-9.]/g, ''))}
-              keyboardType="decimal-pad"
-              maxLength={7}
-            />
-          </View>
-          <Text style={styles.minNote}>Minimum $5.00</Text>
+          <View style={styles.body}>
+            <View style={styles.amountCard}>
+              <View style={styles.inputWrap}>
+                <T style={styles.dollarSign}>$</T>
+                <TextInput
+                  // Sized to its digits so "$" stays snug against the number
+                  style={[styles.amountInput, { width: Math.max(amountStr.length, 1) * 33 + 14 }]}
+                  placeholder="0"
+                  placeholderTextColor="rgba(217,180,90,0.3)"
+                  selectionColor={Lux.gold}
+                  value={amountStr}
+                  onChangeText={v => setAmountStr(v.replace(/[^0-9.]/g, ''))}
+                  keyboardType="decimal-pad"
+                  maxLength={7}
+                  maxFontSizeMultiplier={1.1}
+                />
+              </View>
+              <T style={luxStyles.eyebrow}>MINIMUM $5 · MAXIMUM $2,000</T>
+            </View>
 
-          {amount > 0 && (
-            <View style={styles.feeCard}>
-              <View style={styles.feeLine}>
-                <Text style={styles.feeLabel}>Gift amount</Text>
-                <Text style={styles.feeValue}>${amount.toFixed(2)}</Text>
-              </View>
-              <View style={styles.feeLine}>
-                <Text style={styles.feeLabel}>Processing fee</Text>
-                <Text style={styles.feeValue}>${fee.toFixed(2)}</Text>
-              </View>
-              <View style={styles.feeDivider} />
-              <View style={styles.feeLine}>
-                <Text style={styles.feeLabelBold}>Total charged</Text>
-                <View style={styles.feeTotalRow}>
-                  {lucky && (
-                    <Animated.Text style={[styles.luckySparkle, { opacity: sparkle }]}>
-                      ✨
-                    </Animated.Text>
-                  )}
-                  <Text style={styles.feeTotal}>${total.toFixed(2)}</Text>
+            {amount > 0 && (
+              <View style={styles.feeCard}>
+                <View style={styles.feeLine}>
+                  <T style={styles.feeLabel}>Gift amount</T>
+                  <T style={styles.feeValue}>${amount.toFixed(2)}</T>
+                </View>
+                <View style={styles.feeLine}>
+                  <T style={styles.feeLabel}>Processing fee</T>
+                  <T style={styles.feeValue}>${fee.toFixed(2)}</T>
+                </View>
+                <View style={styles.feeDivider} />
+                <View style={styles.feeLine}>
+                  <T style={styles.feeLabelBold}>Total charged</T>
+                  <View style={styles.feeTotalRow}>
+                    {lucky && (
+                      <Animated.Text style={[styles.luckySparkle, { opacity: sparkle }]}>
+                        ✨
+                      </Animated.Text>
+                    )}
+                    <T style={styles.feeTotal}>${total.toFixed(2)}</T>
+                  </View>
                 </View>
               </View>
-            </View>
-          )}
+            )}
 
-          {/* REPLACE WITH CUSTOM ASSET LATER */}
-          <TouchableOpacity
-            style={[styles.continueBtn, !valid && styles.btnDisabled]}
-            onPress={() => advance(amountStr)}
-            disabled={!valid}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.continueBtnText}>Continue</Text>
-          </TouchableOpacity>
-
-          {/* REPLACE WITH CUSTOM ASSET LATER */}
-          <TouchableOpacity
-            style={styles.skipBtn}
-            onPress={() => advance('')}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.skipText}>Skip — no cash gift</Text>
-          </TouchableOpacity>
+            <LuxButton
+              title="Continue"
+              chevron
+              onPress={() => advance(amountStr)}
+              disabled={!valid}
+            />
+            <LuxButton
+              title="Skip — no cash gift"
+              variant="outline"
+              onPress={() => advance('')}
+            />
+          </View>
         </ScrollView>
       </SafeAreaView>
     </ImageBackground>
@@ -133,42 +135,30 @@ export default function GiftAmountStep() {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  scroll: { padding: 20, gap: 16, paddingBottom: 40 },
+  scroll: { paddingBottom: 40 },
+  body:   { paddingHorizontal: 22, gap: 16 },
 
+  amountCard: {
+    ...luxStyles.card,
+    alignItems: 'center', paddingTop: 10, paddingBottom: 18, gap: 4,
+  },
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'center', gap: 4, paddingVertical: 16,
+    justifyContent: 'center', gap: 4, paddingVertical: 6,
   },
-  dollarSign:  { color: Brand.gold, fontSize: 36, fontWeight: '300' },
+  dollarSign:  { color: Lux.gold, fontSize: 34, fontFamily: SERIF },
   amountInput: {
-    color: Brand.gold, fontSize: 60, fontFamily: 'ui-serif',
-    letterSpacing: 1, minWidth: 120, textAlign: 'center',
+    color: Lux.goldBright, fontSize: 60, fontFamily: SERIF,
+    letterSpacing: 1, textAlign: 'left', padding: 0,
   },
-  minNote: { color: Brand.muted, fontSize: 12, textAlign: 'center', marginTop: -8 },
 
-  feeCard: {
-    backgroundColor: 'rgba(36, 51, 39, 0.85)',
-    borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 12, padding: 16, gap: 10,
-  },
-  feeLine:      { flexDirection: 'row', justifyContent: 'space-between' },
-  feeLabel:     { color: Brand.muted, fontSize: 14 },
-  feeLabelBold: { color: Brand.cream, fontSize: 15, fontWeight: '600' },
-  feeValue:     { color: Brand.cream, fontSize: 14 },
-  feeTotal:     { color: Brand.gold,  fontSize: 16, fontWeight: '700' },
+  feeCard:      { ...luxStyles.card, padding: 18, gap: 11 },
+  feeLine:      { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  feeLabel:     { color: Lux.muted, fontSize: 14 },
+  feeLabelBold: { color: Lux.cream, fontSize: 16, fontFamily: SERIF },
+  feeValue:     { color: Lux.cream, fontSize: 14 },
+  feeTotal:     { color: Lux.goldBright, fontSize: 18, fontFamily: SERIF },
   feeTotalRow:  { flexDirection: 'row', alignItems: 'center', gap: 6 },
   luckySparkle: { fontSize: 13 },
-  feeDivider:   { height: 1, backgroundColor: Brand.greenBorder },
-
-  continueBtn: {
-    height: 56, backgroundColor: '#D4AF37',
-    borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-  },
-  btnDisabled:     { opacity: 0.4 },
-  continueBtnText: { color: '#1B3A2B', fontSize: 16, fontWeight: '700', letterSpacing: 1.5 },
-  skipBtn: {
-    height: 52, borderWidth: 1.5, borderColor: '#D4AF37',
-    borderRadius: 12, alignItems: 'center', justifyContent: 'center',
-  },
-  skipText: { color: Brand.gold, fontSize: 15, fontWeight: '600' },
+  feeDivider:   { height: 1, backgroundColor: Lux.hairline },
 });

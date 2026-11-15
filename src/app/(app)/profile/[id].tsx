@@ -9,6 +9,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
+import { Lux, SERIF, LuxButton, LuxBackHeader, LuxInitials } from '@/components/lux';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const PHOTO_SIZE = Math.floor((SCREEN_WIDTH - 40 - 8) / 3);
@@ -75,21 +76,24 @@ export default function ContactProfileScreen() {
     <ImageBackground source={bg} style={{ flex: 1 }} resizeMode="cover">
     <View style={{ flex: 1 }}>
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.headerBack}>‹ Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push(`/(app)/contact/${id}`)}>
-          <Text style={styles.headerEdit}>Edit</Text>
-        </TouchableOpacity>
-      </View>
+      <LuxBackHeader
+        onBack={() => router.back()}
+        actionLabel="Edit"
+        onAction={() => router.push(`/(app)/contact/${id}`)}
+      />
 
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Name & relation */}
         <View style={styles.nameBlock}>
-          <Text style={styles.name}>{contact.display_name}</Text>
-          {contact.relation ? <Text style={styles.relation}>{contact.relation}</Text> : null}
+          <View style={styles.avatarRing}>
+            <LuxInitials name={contact.display_name} size={84} />
+          </View>
+          <Text style={styles.name} maxFontSizeMultiplier={1.25}>{contact.display_name}</Text>
+          {contact.relation ? (
+            <Text style={styles.relation} maxFontSizeMultiplier={1.25}>
+              {contact.relation.toUpperCase()}
+            </Text>
+          ) : null}
         </View>
 
         {/* Contact info */}
@@ -124,7 +128,7 @@ export default function ContactProfileScreen() {
                 <Text style={styles.infoValue}>{bd.label}</Text>
                 {upcomingBirthday && (
                   <Text style={styles.countdown}>
-                    {bd.days === 0 ? 'Today! 🎂' : `${bd.days} days away`}
+                    {bd.days === 0 ? 'Today!' : bd.days === 1 ? 'Tomorrow' : `${bd.days} days away`}
                   </Text>
                 )}
               </View>
@@ -132,28 +136,17 @@ export default function ContactProfileScreen() {
           </View>
         ) : null}
 
-        {/* Photos — placeholder until EAS build with expo-image-picker */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Photos</Text>
-        </View>
-        <View style={styles.photosPlaceholder}>
-          <Text style={styles.photosPlaceholderText}>Photos available after next build</Text>
-        </View>
-
-        {/* Send Gift */}
-        {/* REPLACE WITH CUSTOM ASSET LATER */}
-        <TouchableOpacity
-          style={styles.giftButton}
+        <LuxButton
+          title="Send a gift"
+          chevron
           onPress={() =>
             router.push({
               pathname: '/send/recipient',
               params: { prefilledId: id, prefilledName: contact.display_name },
             })
           }
-          activeOpacity={0.85}
-        >
-          <Text style={styles.giftButtonText}>Send a Gift</Text>
-        </TouchableOpacity>
+          style={{ marginTop: 8 }}
+        />
       </ScrollView>
     </View>
     <BottomNavBar />
@@ -165,42 +158,24 @@ export default function ContactProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: Brand.greenBorder,
+  scroll: { paddingHorizontal: 22, gap: 14, paddingBottom: 60 },
+  nameBlock: { alignItems: 'center', gap: 6, paddingTop: 4, paddingBottom: 8 },
+  avatarRing: {
+    padding: 5, borderRadius: 52, marginBottom: 6,
+    borderWidth: 1.5, borderColor: Lux.gold,
   },
-  headerBack: { color: Brand.gold, fontSize: 17 },
-  headerEdit: { color: Brand.gold, fontSize: 17 },
-  scroll: { padding: 20, gap: 16, paddingBottom: 60 },
-  nameBlock: { gap: 4, paddingBottom: 4 },
-  name: { color: Brand.cream, fontSize: 28, fontFamily: 'ui-serif' },
-  relation: { color: Brand.muted, fontSize: 15 },
+  name: { color: Lux.cream, fontSize: 28, fontFamily: SERIF, textAlign: 'center' },
+  relation: { color: 'rgba(217,180,90,0.8)', fontSize: 11, letterSpacing: 2.5 },
   infoCard: {
-    backgroundColor: Brand.greenMid, borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 12, overflow: 'hidden',
+    backgroundColor: Lux.glass, borderWidth: 1, borderColor: Lux.hairline,
+    borderRadius: 16, overflow: 'hidden',
   },
   infoRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 16, paddingVertical: 14,
+    paddingHorizontal: 18, paddingVertical: 15, gap: 12,
   },
-  infoSep: { height: 1, backgroundColor: Brand.greenBorder, marginHorizontal: 16 },
-  infoLabel: { color: Brand.muted, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase' },
-  infoValue: { color: Brand.cream, fontSize: 15 },
-  countdown: { color: Brand.gold, fontSize: 12, fontWeight: '600' },
-  sectionHeader: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 8,
-  },
-  sectionTitle: { color: Brand.muted, fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase' },
-  photosPlaceholder: {
-    backgroundColor: Brand.greenMid, borderWidth: 1, borderColor: Brand.greenBorder,
-    borderRadius: 12, paddingVertical: 28, alignItems: 'center',
-  },
-  photosPlaceholderText: { color: Brand.muted, fontSize: 13 },
-  giftButton: {
-    backgroundColor: Brand.gold, borderRadius: 12, paddingVertical: 16,
-    alignItems: 'center', marginTop: 8,
-  },
-  giftButtonText: { color: Brand.green, fontSize: 17, fontWeight: '700', letterSpacing: 0.5 },
+  infoSep: { height: 1, backgroundColor: Lux.hairline, marginHorizontal: 18 },
+  infoLabel: { color: 'rgba(217,180,90,0.75)', fontSize: 10, letterSpacing: 2, textTransform: 'uppercase' },
+  infoValue: { color: Lux.cream, fontSize: 16, fontFamily: SERIF, flexShrink: 1, textAlign: 'right' },
+  countdown: { color: Lux.goldBright, fontSize: 11, letterSpacing: 1.2 },
 });

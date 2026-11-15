@@ -1,15 +1,21 @@
 import { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
-  ImageBackground,
+  KeyboardAvoidingView, Platform, Alert,
+  ImageBackground, ScrollView, Image,
 } from 'react-native';
-import { Link } from 'expo-router';
+import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '@/context/auth';
 import { supabase } from '@/lib/supabase';
+import { Lux, SERIF, T, LuxButton } from '@/components/lux';
+
+const BG = require('../../../assets/background.png');
+const LOCKUP = require('../../../assets/images/ui/brand-lockup.png');
 
 export default function SignUpScreen() {
+  const router = useRouter();
   const { signUp } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
@@ -41,61 +47,78 @@ export default function SignUpScreen() {
   }
 
   return (
-    <ImageBackground
-      source={require('../../../assets/background.png')}
-      style={styles.container}
-      resizeMode="cover"
-    >
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <View style={styles.inner}>
-        <Text style={styles.wordmark}>DeLacroix</Text>
-        <Text style={styles.tagline}>it's from the heart</Text>
-
-        <View style={styles.form}>
-          <TextInput
-            style={styles.input}
-            placeholder="Your name (shown to recipients)"
-            placeholderTextColor="#9A8C7A"
-            value={displayName}
-            onChangeText={setDisplayName}
-            autoCapitalize="words"
-            autoComplete="name"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            placeholderTextColor="#9A8C7A"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            autoComplete="email"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password (8+ characters)"
-            placeholderTextColor="#9A8C7A"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoComplete="new-password"
+    <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <Image
+            source={LOCKUP}
+            style={styles.lockup}
+            resizeMode="contain"
+            accessibilityLabel="DeLacroix — it's from the heart"
           />
 
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
+          <T style={styles.title}>Create your account</T>
+
+          <View style={styles.inputWrap}>
+            <Ionicons name="person-outline" size={20} color={Lux.gold} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Your name (shown to recipients)"
+              placeholderTextColor={Lux.faint}
+              selectionColor={Lux.gold}
+              value={displayName}
+              onChangeText={setDisplayName}
+              autoCapitalize="words"
+              autoComplete="name"
+              maxFontSizeMultiplier={1.25}
+            />
+          </View>
+          <View style={styles.inputWrap}>
+            <Ionicons name="mail-outline" size={20} color={Lux.gold} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={Lux.faint}
+              selectionColor={Lux.gold}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              autoComplete="email"
+              maxFontSizeMultiplier={1.25}
+            />
+          </View>
+          <View style={styles.inputWrap}>
+            <Ionicons name="lock-closed-outline" size={20} color={Lux.gold} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password (8+ characters)"
+              placeholderTextColor={Lux.faint}
+              selectionColor={Lux.gold}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoComplete="new-password"
+              maxFontSizeMultiplier={1.25}
+            />
+          </View>
+
+          <LuxButton
+            title="Create account"
+            chevron
             onPress={handleSignUp}
-            disabled={loading}
-          >
-            {loading
-              ? <ActivityIndicator color="#F5ECD7" />
-              : <Text style={styles.buttonText}>Create Account</Text>
-            }
-          </TouchableOpacity>
+            loading={loading}
+            style={{ width: '100%', marginTop: 8 }}
+          />
 
-          <Text style={styles.legalNote}>
+          <Text style={styles.legalNote} maxFontSizeMultiplier={1.25}>
             By creating an account you agree to our{' '}
             <Text
               style={styles.legalLink}
@@ -112,93 +135,46 @@ export default function SignUpScreen() {
             </Text>
             .
           </Text>
-        </View>
 
-        <Link href="/(auth)/login" asChild>
-          <TouchableOpacity style={styles.switchLink}>
-            <Text style={styles.switchText}>
+          <TouchableOpacity
+            style={styles.switchLink}
+            onPress={() => router.replace('/(auth)/login')}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.switchText} maxFontSizeMultiplier={1.25}>
               Already have an account? <Text style={styles.switchTextBold}>Sign in</Text>
             </Text>
           </TouchableOpacity>
-        </Link>
-      </View>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  scroll: {
+    flexGrow: 1, alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: 28, paddingVertical: 48,
   },
-  inner: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 32,
+  lockup: { width: 236, height: 190, marginBottom: 10 },
+  title: {
+    color: Lux.cream, fontSize: 24, fontFamily: SERIF,
+    letterSpacing: 0.5, marginBottom: 20,
   },
-  wordmark: {
-    fontFamily: 'serif',
-    fontSize: 28,
-    color: '#C9A84C',
-    textAlign: 'center',
-    letterSpacing: 2,
-    marginBottom: 6,
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center',
+    width: '100%', height: 56,
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.45)',
+    borderRadius: 14, marginBottom: 14, paddingHorizontal: 16,
   },
-  tagline: {
-    fontSize: 13,
-    color: '#9A8C7A',
-    textAlign: 'center',
-    letterSpacing: 1,
-    fontStyle: 'italic',
-    marginBottom: 48,
-  },
-  form: {
-    gap: 14,
-  },
-  input: {
-    backgroundColor: '#243327',
-    borderWidth: 1,
-    borderColor: '#3A4F3D',
-    borderRadius: 10,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#F5ECD7',
-  },
-  button: {
-    backgroundColor: '#C9A84C',
-    borderRadius: 10,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 6,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#1C2B1E',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  switchLink: {
-    marginTop: 28,
-    alignItems: 'center',
-  },
-  switchText: {
-    color: '#9A8C7A',
-    fontSize: 14,
-  },
-  switchTextBold: {
-    color: '#C9A84C',
-    fontWeight: '600',
-  },
+  inputIcon: { marginRight: 12 },
+  input:     { flex: 1, color: Lux.cream, fontSize: 16, height: '100%' },
   legalNote: {
-    color: '#C4B99F',
-    fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 14,
+    color: Lux.muted, fontSize: 12, lineHeight: 18, textAlign: 'center', marginTop: 16,
   },
-  legalLink: {
-    color: '#D4AF37',
-    textDecorationLine: 'underline',
-  },
+  legalLink: { color: Lux.gold, textDecorationLine: 'underline' },
+  switchLink: { marginTop: 24, paddingVertical: 8 },
+  switchText: { color: Lux.muted, fontSize: 14 },
+  switchTextBold: { color: Lux.goldBright, fontWeight: '600' },
 });

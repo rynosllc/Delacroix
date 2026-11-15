@@ -38,7 +38,7 @@ serve(async (req) => {
 
     const { data: gift, error } = await supabase
       .from("gifts")
-      .select("template_id, message_text, cash_amount, status, thank_you_message, users!gifts_sender_id_fkey(display_name)")
+      .select("template_id, message_text, cash_amount, status, thank_you_message, payment_status, payout_status, users!gifts_sender_id_fkey(display_name)")
       .eq("claim_token", token)
       .single();
 
@@ -56,6 +56,9 @@ serve(async (req) => {
       cash_amount: gift.cash_amount,
       status: gift.status,
       has_thank_you: !!gift.thank_you_message,
+      // Cash can be collected only once the sender's payment has cleared
+      cash_ready: !!gift.cash_amount && gift.payment_status === "paid",
+      payout_status: gift.payout_status ?? "none",
     });
   } catch (_e) {
     return json({ error: "Bad request" }, 400);
