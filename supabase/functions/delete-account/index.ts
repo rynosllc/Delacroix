@@ -40,6 +40,12 @@ serve(async (req) => {
     await supabase.from("gifts").update({ claimed_by: null }).eq("claimed_by", user.id);
     await supabase.from("recipient_contacts").update({ claimed_user_id: null }).eq("claimed_user_id", user.id);
 
+    // 1b. Delete every photo this user attached to a gift
+    const { data: photos } = await supabase.storage.from("gift-photos").list(user.id, { limit: 1000 });
+    if (photos && photos.length > 0) {
+      await supabase.storage.from("gift-photos").remove(photos.map(p => `${user.id}/${p.name}`));
+    }
+
     // 2. Delete gifts this user sent (frees FK references to their contacts)
     const { error: giftsError } = await supabase.from("gifts").delete().eq("sender_id", user.id);
     if (giftsError) throw giftsError;

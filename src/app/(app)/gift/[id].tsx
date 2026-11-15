@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, ImageBackground,
-  ActivityIndicator, Alert, Share, ScrollView,
+  ActivityIndicator, Alert, Share, ScrollView, Image,
 } from 'react-native';
+import { removeGiftPhoto } from '@/lib/photos';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
@@ -44,6 +45,7 @@ interface GiftDetail {
   expires_at: string | null;
   thank_you_message: string | null;
   claim_token: string;
+  photo_path: string | null;
   recipient_contacts: { display_name: string } | null;
   users: { display_name: string } | null;
 }
@@ -63,17 +65,26 @@ export default function GiftDetailScreen() {
   const [gift, setGift] = useState<GiftDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!id) return;
     supabase
       .from('gifts')
-      .select('id, sender_id, template_id, message_text, cash_amount, fee_amount, status, created_at, scheduled_send_at, sent_at, claimed_at, expires_at, thank_you_message, claim_token, recipient_contacts(display_name), users!gifts_sender_id_fkey(display_name)')
+      .select('id, sender_id, template_id, message_text, cash_amount, fee_amount, status, created_at, scheduled_send_at, sent_at, claimed_at, expires_at, thank_you_message, claim_token, photo_path, recipient_contacts(display_name), users!gifts_sender_id_fkey(display_name)')
       .eq('id', id)
       .single()
       .then(({ data }) => {
-        setGift(data as unknown as GiftDetail);
+        const g = data as unknown as GiftDetail;
+        setGift(g);
         setLoading(false);
+        // The photo sits in a private bucket; the claim lookup mints a
+        // short-lived link for sender and recipient alike.
+        if (g?.photo_path) {
+          supabase.functions
+            .invoke('get-gift-by-token', { body: { token: g.claim_token } })
+            .then(({ data: lookup }) => setPhotoUrl(lookup?.photo_url ?? null));
+        }
       });
   }, [id]);
 
@@ -101,6 +112,7 @@ export default function GiftDetailScreen() {
             const { error } = await supabase.from('gifts').delete().eq('id', gift.id);
             setBusy(false);
             if (error) { Alert.alert('Could not cancel', error.message); return; }
+            await removeGiftPhoto(gift.photo_path);
             router.back();
           },
         },
@@ -164,6 +176,12 @@ export default function GiftDetailScreen() {
             <View style={styles.titleRule} />
           </View>
         </View>
+
+        {photoUrl ? (
+          <View style={styles.photoFrame}>
+            <Image source={{ uri: photoUrl }} style={styles.photo} resizeMode="cover" />
+          </View>
+        ) : null}
 
         {/* Message */}
         <View style={styles.card}>
@@ -254,6 +272,13 @@ const styles = StyleSheet.create({
   title:    { color: Lux.cream, fontSize: 28, fontFamily: SERIF, letterSpacing: 0.5, textAlign: 'center' },
   titleRuleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   titleRule: { width: 46, height: 1, backgroundColor: Lux.line },
+
+  // Explicit height: the wrapper sizes the photo, not the image itself.
+  photoFrame: {
+    height: 260, borderRadius: 16, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.5)',
+  },
+  photo: { width: '100%', height: '100%' },
 
   card: {
     backgroundColor: Lux.glass,

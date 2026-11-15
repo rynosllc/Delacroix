@@ -38,7 +38,7 @@ serve(async (req) => {
 
     const { data: gift, error } = await supabase
       .from("gifts")
-      .select("template_id, message_text, cash_amount, status, thank_you_message, payment_status, payout_status, users!gifts_sender_id_fkey(display_name)")
+      .select("sender_id, template_id, message_text, cash_amount, status, thank_you_message, payment_status, payout_status, photo_path, users!gifts_sender_id_fkey(display_name)")
       .eq("claim_token", token)
       .single();
 
@@ -48,8 +48,20 @@ serve(async (req) => {
 
     const sender = gift.users as unknown as { display_name: string } | null;
 
+    // The photo lives in a private bucket; hand out a one-hour signed URL.
+    // Only paths inside the sender's own folder are ever signed, so a gift
+    // row can't be used to read someone else's photo.
+    let photoUrl: string | null = null;
+    if (gift.photo_path && gift.photo_path.startsWith(`${gift.sender_id}/`)) {
+      const { data: signed } = await supabase.storage
+        .from("gift-photos")
+        .createSignedUrl(gift.photo_path, 3600);
+      photoUrl = signed?.signedUrl ?? null;
+    }
+
     // Whitelist output — never expose sender_id, contact ids, stripe ids
     return json({
+      photo_url: photoUrl,
       sender_name: sender?.display_name ?? "Someone",
       occasion: gift.template_id,
       message_text: gift.message_text,

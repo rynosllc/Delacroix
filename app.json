@@ -40,8 +40,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "DeLacroix uses your photo library to add photos to contacts.",
-          "cameraPermission": "DeLacroix uses your camera to take photos for contacts."
+          "photosPermission": "DeLacroix lets you choose a photo from your library to include with a gift.",
+          "cameraPermission": "DeLacroix uses your camera so you can take a photo to include with a gift."
         }
       ],
       [

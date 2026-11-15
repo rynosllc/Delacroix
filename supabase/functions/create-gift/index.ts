@@ -55,6 +55,8 @@ interface CreateGiftPayload {
   message_source: "manual" | "ai_generated" | "ai_polished";
   cash_amount: number;
   scheduled_send_at: string; // ISO string
+  // Optional storage path in the gift-photos bucket ("<sender uid>/<file>")
+  photo_path?: string | null;
 }
 
 serve(async (req) => {
@@ -82,6 +84,12 @@ serve(async (req) => {
     const cashAmount = Number(body.cash_amount);
     if (!Number.isFinite(cashAmount) || cashAmount < 5 || cashAmount > 2000) {
       return json({ error: "Cash amount must be between $5 and $2,000" }, 400);
+    }
+
+    // A photo may only come from the sender's own folder
+    const photoPath = typeof body.photo_path === "string" && body.photo_path ? body.photo_path : null;
+    if (photoPath && !photoPath.startsWith(`${user.id}/`)) {
+      return json({ error: "Invalid photo" }, 400);
     }
 
     // Verify the recipient contact belongs to this sender
@@ -134,6 +142,7 @@ serve(async (req) => {
         status: "scheduled",
         payment_status: "pending",
         scheduled_send_at: body.scheduled_send_at,
+        photo_path: photoPath,
       })
       .select()
       .single();

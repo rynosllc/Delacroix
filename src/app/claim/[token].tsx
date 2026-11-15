@@ -32,6 +32,7 @@ interface ClaimGift {
   has_thank_you: boolean;
   cash_ready?: boolean;
   payout_status?: string;
+  photo_url?: string | null;
 }
 
 // Stripe sends the recipient back to this page with ?payout=return once their
@@ -257,7 +258,13 @@ export default function ClaimScreen() {
                 { opacity: messageFade, transform: [{ translateY: messageRise }] },
               ]}
             >
-              <Ionicons name="heart" size={14} color={Lux.gold} />
+              {gift.photo_url ? (
+                <View style={styles.photoFrame}>
+                  <Image source={{ uri: gift.photo_url }} style={styles.photo} resizeMode="cover" />
+                </View>
+              ) : (
+                <Ionicons name="heart" size={14} color={Lux.gold} />
+              )}
               <T style={styles.messageText}>{gift.message_text}</T>
               <T style={styles.messageFrom}>— {gift.sender_name}</T>
 
@@ -397,6 +404,12 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(217,180,90,0.4)',
     borderRadius: 18, padding: 26, gap: 16, alignItems: 'center',
   },
+  // Explicit height: the wrapper sizes the photo, not the image itself.
+  photoFrame: {
+    alignSelf: 'stretch', height: 260, borderRadius: 14, overflow: 'hidden',
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.5)',
+  },
+  photo: { width: '100%', height: '100%' },
   messageText: {
     color: Lux.cream, fontSize: 19, lineHeight: 29,
     textAlign: 'center', fontFamily: SERIF,

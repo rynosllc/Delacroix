@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
-  ImageBackground, ScrollView, ActivityIndicator, Alert, TextInput,
+  ImageBackground, ScrollView, ActivityIndicator, Alert, TextInput, Image,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '@/lib/supabase';
@@ -9,6 +9,7 @@ import { useAuth } from '@/context/auth';
 import { Brand } from '@/constants/brand';
 import { isLuckyAmount } from '@/lib/luck';
 import { usePaymentSheet } from '@/lib/payments';
+import { uploadGiftPhoto, removeGiftPhoto } from '@/lib/photos';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 import { Lux, SERIF, LuxButton } from '@/components/lux';
 
@@ -89,6 +90,19 @@ export default function ReviewStep() {
     const messageSource =
       params.messageSource === 'ai_generated' ? 'ai_generated' : 'manual';
 
+    // The photo is uploaded only now, so an abandoned draft leaves nothing
+    // behind; any failure below removes it again.
+    let photoPath: string | null = null;
+    if (hasPhoto) {
+      try {
+        photoPath = await uploadGiftPhoto(user.id, params.photoUri);
+      } catch {
+        setSending(false);
+        Alert.alert('Photo not uploaded', 'Your photo could not be uploaded. Check your connection and try again.');
+        return;
+      }
+    }
+
     if (hasGift) {
       // Cash gift: the create-gift function makes the PaymentIntent and a
       // pending gift row; the payment sheet confirms; the webhook marks it
@@ -101,9 +115,11 @@ export default function ReviewStep() {
           message_source: messageSource,
           cash_amount: amount,
           scheduled_send_at: sendAt.toISOString(),
+          photo_path: photoPath,
         },
       });
       if (error || data?.error || !data?.client_secret) {
+        await removeGiftPhoto(photoPath);
         setSending(false);
         Alert.alert('Could not start payment', data?.error ?? 'Please try again.');
         return;
@@ -113,6 +129,7 @@ export default function ReviewStep() {
       if (!payment.ok) {
         // Remove the pending gift so an abandoned payment leaves no trace
         await supabase.from('gifts').delete().eq('id', data.gift_id);
+        await removeGiftPhoto(photoPath);
         setSending(false);
         if (!payment.canceled) {
           Alert.alert('Payment not completed', payment.error ?? 'Please try again.');
@@ -130,9 +147,11 @@ export default function ReviewStep() {
         fee_amount: null,
         status: 'scheduled',
         scheduled_send_at: sendAt.toISOString(),
+        photo_path: photoPath,
       });
 
       if (error) {
+        await removeGiftPhoto(photoPath);
         setSending(false);
         Alert.alert('Could not send gift', error.message);
         return;
@@ -192,6 +211,7 @@ export default function ReviewStep() {
               label="PHOTO"
               value={hasPhoto ? 'Photo attached' : 'No photo'}
               onEdit={() => editStep('/send/photo')}
+              thumb={hasPhoto ? params.photoUri : undefined}
             />
             <View style={styles.rowSep} />
             <SummaryRow
@@ -295,12 +315,13 @@ export default function ReviewStep() {
 }
 
 function SummaryRow({
-  label, value, onEdit, multiline,
+  label, value, onEdit, multiline, thumb,
 }: {
-  label: string; value: string; onEdit: () => void; multiline?: boolean;
+  label: string; value: string; onEdit: () => void; multiline?: boolean; thumb?: string;
 }) {
   return (
     <View style={sumStyles.row}>
+      {thumb ? <Image source={{ uri: thumb }} style={sumStyles.thumb} resizeMode="cover" /> : null}
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={sumStyles.label}>{label}</Text>
         <Text style={sumStyles.value} numberOfLines={multiline ? 3 : 1}>{value}</Text>
@@ -317,6 +338,10 @@ const sumStyles = StyleSheet.create({
   label: { color: 'rgba(217,180,90,0.75)', fontSize: 10, letterSpacing: 2 },
   value: { color: Lux.cream, fontSize: 17, lineHeight: 23, fontFamily: SERIF },
   edit:  { color: Lux.gold, fontSize: 11, fontWeight: '600', letterSpacing: 1.5 },
+  thumb: {
+    width: 46, height: 46, borderRadius: 10,
+    borderWidth: 1, borderColor: 'rgba(217,180,90,0.5)',
+  },
 });
 
 const styles = StyleSheet.create({
