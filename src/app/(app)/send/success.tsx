@@ -44,13 +44,16 @@ export default function SendSuccessScreen() {
           )}
         </View>
 
-        <LuxButton title="Done" onPress={() => router.replace('/')} />
-        <LuxButton
-          title="View your gifts"
-          variant="outline"
-          onPress={() => router.replace('/gifts')}
-          style={{ marginTop: 12, marginBottom: 8 }}
-        />
+        {/* iOS SafeAreaView replaces its own padding with the safe-area
+            insets, so the side gutter lives on this inner view. */}
+        <View style={styles.actions}>
+          <LuxButton title="Done" onPress={() => router.replace('/')} />
+          <LuxButton
+            title="View your gifts"
+            variant="outline"
+            onPress={() => router.replace('/gifts')}
+          />
+        </View>
 
         {isCentieme && <HeartRain />}
       </SafeAreaView>
@@ -135,8 +138,9 @@ function HeartRain() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, padding: 22 },
-  body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18 },
+  safe: { flex: 1 },
+  body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18, paddingHorizontal: 22 },
+  actions: { paddingHorizontal: 22, paddingBottom: 14, gap: 12 },
   checkCircle: {
     width: 108, height: 108, borderRadius: 54,
     borderWidth: 1.5, borderColor: Lux.gold,
