@@ -6,18 +6,12 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { isLuckyAmount } from '@/lib/luck';
+import { calcFee } from '@/lib/fees';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 import { Lux, SERIF, T, LuxButton, luxStyles } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
 
-// Same rounding as the create-gift function, so the total shown here is the
-// total charged.
-function calcFee(amount: number): { fee: number; total: number } {
-  const fee  = Math.round((amount * 0.029 + 0.30) * 100) / 100;
-  const total = Math.round((amount + fee) * 100) / 100;
-  return { fee, total };
-}
 
 export default function GiftAmountStep() {
   const router = useRouter();
@@ -97,7 +91,7 @@ export default function GiftAmountStep() {
                   <T style={styles.feeValue}>${amount.toFixed(2)}</T>
                 </View>
                 <View style={styles.feeLine}>
-                  <T style={styles.feeLabel}>Processing fee</T>
+                  <T style={styles.feeLabel}>Card processing</T>
                   <T style={styles.feeValue}>${fee.toFixed(2)}</T>
                 </View>
                 <View style={styles.feeDivider} />

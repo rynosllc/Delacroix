@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet,
   SafeAreaView, ImageBackground, Animated, Dimensions, Easing,
@@ -8,15 +8,35 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Brand } from '@/constants/brand';
 import { Lux, SERIF, LuxButton } from '@/components/lux';
+import { supabase } from '@/lib/supabase';
+import { giftMessage, textGift, shareGift } from '@/lib/share';
 
 const BG = require('../../../../assets/background.png');
 
 export default function SendSuccessScreen() {
   const router = useRouter();
-  const { recipientName, centieme } = useLocalSearchParams<{
-    recipientName: string; centieme?: string;
+  const { recipientName, recipientId, claimToken, opensAt, centieme } = useLocalSearchParams<{
+    recipientName: string; recipientId?: string; claimToken?: string;
+    opensAt?: string; centieme?: string;
   }>();
   const isCentieme = centieme === '1';
+  const firstName = (recipientName ?? '').split(' ')[0] || 'them';
+  const opensOn = opensAt ? new Date(opensAt) : null;
+  const [phone, setPhone] = useState<string | null>(null);
+  const [shared, setShared] = useState(false);
+
+  // The recipient's number pre-fills Messages; without one the share sheet opens.
+  useEffect(() => {
+    if (!recipientId) return;
+    supabase
+      .from('recipient_contacts')
+      .select('phone')
+      .eq('id', recipientId)
+      .single()
+      .then(({ data }) => setPhone(data?.phone ?? null));
+  }, [recipientId]);
+
+  const message = claimToken ? giftMessage(claimToken, opensOn) : '';
 
   return (
     <ImageBackground source={BG} style={{ flex: 1 }} resizeMode="cover">
@@ -24,15 +44,19 @@ export default function SendSuccessScreen() {
         <View style={styles.body}>
           <View style={styles.checkCircle}>
             <View style={styles.checkInner}>
-              <Ionicons name="checkmark" size={46} color={Lux.goldBright} />
+              <Ionicons name={shared ? 'checkmark' : 'gift-outline'} size={44} color={Lux.goldBright} />
             </View>
           </View>
-          <Text style={styles.title}>Your gift is on its way</Text>
-          {recipientName ? (
-            <Text style={styles.subtitle}>
-              {recipientName} will receive it with love.
-            </Text>
-          ) : null}
+          <Text style={styles.title} maxFontSizeMultiplier={1.25}>
+            {shared ? 'Your gift is on its way' : 'Your gift is wrapped'}
+          </Text>
+          <Text style={styles.subtitle} maxFontSizeMultiplier={1.25}>
+            {shared
+              ? `${recipientName || 'They'} will receive it with love.`
+              : opensOn
+                ? `Text it to ${firstName} now — it stays sealed until ${opensOn.toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}.`
+                : `Text it to ${firstName} so it arrives from you.`}
+          </Text>
 
           {isCentieme && (
             <View style={styles.plaque}>
@@ -47,12 +71,38 @@ export default function SendSuccessScreen() {
         {/* iOS SafeAreaView replaces its own padding with the safe-area
             insets, so the side gutter lives on this inner view. */}
         <View style={styles.actions}>
-          <LuxButton title="Done" onPress={() => router.replace('/')} />
-          <LuxButton
-            title="View your gifts"
-            variant="outline"
-            onPress={() => router.replace('/gifts')}
-          />
+          {claimToken ? (
+            <>
+              <LuxButton
+                title={`Text it to ${firstName}`}
+                chevron
+                onPress={async () => { await textGift(phone, message); setShared(true); }}
+              />
+              <LuxButton
+                title="Share another way"
+                variant="outline"
+                onPress={async () => { await shareGift(message); setShared(true); }}
+              />
+              <TouchableOpacity
+                style={styles.doneLink}
+                onPress={() => router.replace('/')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.doneLinkText} maxFontSizeMultiplier={1.25}>
+                  {shared ? 'Done' : 'I’ll send it later'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <LuxButton title="Done" onPress={() => router.replace('/')} />
+              <LuxButton
+                title="View your gifts"
+                variant="outline"
+                onPress={() => router.replace('/gifts')}
+              />
+            </>
+          )}
         </View>
 
         {isCentieme && <HeartRain />}
@@ -141,6 +191,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1 },
   body: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 18, paddingHorizontal: 22 },
   actions: { paddingHorizontal: 22, paddingBottom: 14, gap: 12 },
+  doneLink: { alignItems: 'center', paddingVertical: 10 },
+  doneLinkText: { color: Lux.gold, fontSize: 14, textDecorationLine: 'underline' },
   checkCircle: {
     width: 108, height: 108, borderRadius: 54,
     borderWidth: 1.5, borderColor: Lux.gold,

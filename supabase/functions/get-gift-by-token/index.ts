@@ -38,7 +38,7 @@ serve(async (req) => {
 
     const { data: gift, error } = await supabase
       .from("gifts")
-      .select("sender_id, template_id, message_text, cash_amount, status, thank_you_message, payment_status, payout_status, photo_path, users!gifts_sender_id_fkey(display_name)")
+      .select("sender_id, template_id, message_text, cash_amount, status, scheduled_send_at, thank_you_message, payment_status, payout_status, photo_path, users!gifts_sender_id_fkey(display_name)")
       .eq("claim_token", token)
       .single();
 
@@ -47,6 +47,17 @@ serve(async (req) => {
     }
 
     const sender = gift.users as unknown as { display_name: string } | null;
+
+    // A gift that hasn't opened yet reveals nothing but who it's from and
+    // when it opens — the link may already be in the recipient's hands.
+    if (gift.status === "scheduled") {
+      return json({
+        sender_name: sender?.display_name ?? "Someone",
+        occasion: gift.template_id,
+        status: "scheduled",
+        opens_at: gift.scheduled_send_at,
+      });
+    }
 
     // The photo lives in a private bucket; hand out a one-hour signed URL.
     // Only paths inside the sender's own folder are ever signed, so a gift

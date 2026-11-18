@@ -10,6 +10,7 @@ import { Brand } from '@/constants/brand';
 import { isLuckyAmount } from '@/lib/luck';
 import { usePaymentSheet } from '@/lib/payments';
 import { uploadGiftPhoto, removeGiftPhoto } from '@/lib/photos';
+import { calcFee } from '@/lib/fees';
 import { SendFlowHeader } from '@/components/SendFlowHeader';
 import { Lux, SERIF, LuxButton } from '@/components/lux';
 
@@ -103,6 +104,7 @@ export default function ReviewStep() {
       }
     }
 
+    let claimToken = '';
     if (hasGift) {
       // Cash gift: the create-gift function makes the PaymentIntent and a
       // pending gift row; the payment sheet confirms; the webhook marks it
@@ -136,19 +138,24 @@ export default function ReviewStep() {
         }
         return;
       }
+      claimToken = data.claim_token ?? '';
     } else {
-      const { error } = await supabase.from('gifts').insert({
-        sender_id: user.id,
-        recipient_contact_id: params.recipientId,
-        template_id: params.occasion,
-        message_text: params.message,
-        message_source: messageSource,
-        cash_amount: null,
-        fee_amount: null,
-        status: 'scheduled',
-        scheduled_send_at: sendAt.toISOString(),
-        photo_path: photoPath,
-      });
+      const { data: created, error } = await supabase
+        .from('gifts')
+        .insert({
+          sender_id: user.id,
+          recipient_contact_id: params.recipientId,
+          template_id: params.occasion,
+          message_text: params.message,
+          message_source: messageSource,
+          cash_amount: null,
+          fee_amount: null,
+          status: 'scheduled',
+          scheduled_send_at: sendAt.toISOString(),
+          photo_path: photoPath,
+        })
+        .select('claim_token')
+        .single();
 
       if (error) {
         await removeGiftPhoto(photoPath);
@@ -156,6 +163,14 @@ export default function ReviewStep() {
         Alert.alert('Could not send gift', error.message);
         return;
       }
+      claimToken = created?.claim_token ?? '';
+    }
+
+    // A gift sent "now" should open the moment the link is texted, so run
+    // the delivery pass right away instead of waiting for the next tick.
+    const opensLater = sendAt.getTime() > Date.now() + 60_000;
+    if (!opensLater) {
+      await supabase.functions.invoke('send-scheduled-gifts', { body: {} }).catch(() => {});
     }
 
     // The hundredth gift ever sent earns a once-in-a-lifetime moment
@@ -169,6 +184,9 @@ export default function ReviewStep() {
       pathname: '/send/success',
       params: {
         recipientName: params.recipientName,
+        recipientId: params.recipientId,
+        claimToken,
+        ...(opensLater ? { opensAt: sendAt.toISOString() } : {}),
         ...(count === 100 ? { centieme: '1' } : {}),
       },
     });
@@ -218,7 +236,7 @@ export default function ReviewStep() {
               label="GIFT"
               value={
                 hasGift
-                  ? `$${amount.toFixed(2)}${isLuckyAmount(params.giftAmount) ? ' ✨' : ''}`
+                  ? `$${amount.toFixed(2)}${isLuckyAmount(params.giftAmount) ? ' ✨' : ''}  ·  $${calcFee(amount).total.toFixed(2)} total`
                   : 'No cash gift'
               }
               onEdit={() => editStep('/send/gift')}

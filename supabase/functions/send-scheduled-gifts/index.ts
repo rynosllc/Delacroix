@@ -32,6 +32,11 @@ const smsConfigured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE
 
 const STRIPE_KEY = Deno.env.get("STRIPE_SECRET_KEY_TEST") || Deno.env.get("STRIPE_SECRET_KEY") || "";
 
+// Gifts are delivered by the sender, who texts the claim link from their own
+// phone. Automated SMS/email to recipients stays off unless AUTO_NOTIFY=on,
+// so nobody gets a second, impersonal copy.
+const AUTO_NOTIFY = (Deno.env.get("AUTO_NOTIFY") ?? "").toLowerCase() === "on";
+
 const EXPIRY_DAYS = 30;
 
 const OCCASION_PHRASES: Record<string, string> = {
@@ -236,6 +241,7 @@ serve(async (_req) => {
         .select("id");
       if (!flipped || flipped.length === 0) continue; // another run won
       results.delivered.push(gift.id);
+      if (!AUTO_NOTIFY) continue;
 
       const senderName = gift.users?.display_name ?? "Someone";
       const recipientName = gift.recipient_contacts?.display_name ?? "you";

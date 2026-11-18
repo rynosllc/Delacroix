@@ -4,6 +4,7 @@ import {
   ActivityIndicator, Alert, Share, ScrollView, Image,
 } from 'react-native';
 import { removeGiftPhoto } from '@/lib/photos';
+import { giftMessage, textGift, shareGift } from '@/lib/share';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '@/lib/supabase';
@@ -13,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Lux, SERIF, LuxButton, LuxBackHeader } from '@/components/lux';
 
 const BG = require('../../../../assets/background.png');
-const CLAIM_BASE = 'https://delacroix.expo.app/claim/';
 
 const OCCASION_LABELS: Record<string, string> = {
   birthday:     'Birthday',
@@ -46,9 +46,19 @@ interface GiftDetail {
   thank_you_message: string | null;
   claim_token: string;
   photo_path: string | null;
-  recipient_contacts: { display_name: string } | null;
+  recipient_contacts: { display_name: string; phone: string | null } | null;
   users: { display_name: string } | null;
 }
+
+// What the sender sees: a delivered-but-unclaimed gift is "ready", since
+// delivery is the sender texting the link.
+const STATUS_LABELS: Record<string, string> = {
+  scheduled: 'SCHEDULED',
+  sent:      'READY',
+  claimed:   'CLAIMED',
+  declined:  'DECLINED',
+  expired:   'EXPIRED',
+};
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—';
@@ -71,31 +81,38 @@ export default function GiftDetailScreen() {
     if (!id) return;
     supabase
       .from('gifts')
-      .select('id, sender_id, template_id, message_text, cash_amount, fee_amount, status, created_at, scheduled_send_at, sent_at, claimed_at, expires_at, thank_you_message, claim_token, photo_path, recipient_contacts(display_name), users!gifts_sender_id_fkey(display_name)')
+      .select('id, sender_id, template_id, message_text, cash_amount, fee_amount, status, created_at, scheduled_send_at, sent_at, claimed_at, expires_at, thank_you_message, claim_token, photo_path, recipient_contacts(display_name, phone), users!gifts_sender_id_fkey(display_name)')
       .eq('id', id)
       .single()
       .then(({ data }) => {
         const g = data as unknown as GiftDetail;
         setGift(g);
         setLoading(false);
-        // The photo sits in a private bucket; the claim lookup mints a
-        // short-lived link for sender and recipient alike.
+        // The photo sits in a private bucket. Senders can sign a link for
+        // their own folder; recipients get one from the claim lookup.
         if (g?.photo_path) {
-          supabase.functions
-            .invoke('get-gift-by-token', { body: { token: g.claim_token } })
-            .then(({ data: lookup }) => setPhotoUrl(lookup?.photo_url ?? null));
+          if (g.sender_id === user?.id) {
+            supabase.storage
+              .from('gift-photos')
+              .createSignedUrl(g.photo_path, 3600)
+              .then(({ data: signed }) => setPhotoUrl(signed?.signedUrl ?? null));
+          } else {
+            supabase.functions
+              .invoke('get-gift-by-token', { body: { token: g.claim_token } })
+              .then(({ data: lookup }) => setPhotoUrl(lookup?.photo_url ?? null));
+          }
         }
       });
   }, [id]);
 
   const isSender = gift && gift.sender_id === user?.id;
-  const claimUrl = gift ? `${CLAIM_BASE}${gift.claim_token}` : '';
+  const firstName = (gift?.recipient_contacts?.display_name ?? '').split(' ')[0] || 'them';
 
-  async function shareClaimLink() {
-    if (!gift) return;
-    await Share.share({
-      message: `Open your DeLacroix gift here:\n${claimUrl}`,
-    }).catch(() => {});
+  // The text mentions the opening date while the gift is still sealed
+  function shareText(): string {
+    if (!gift) return '';
+    const opensOn = gift.status === 'scheduled' ? new Date(gift.scheduled_send_at) : null;
+    return giftMessage(gift.claim_token, opensOn);
   }
 
   function cancelGift() {
@@ -154,7 +171,7 @@ export default function GiftDetailScreen() {
             right={
               <View style={[styles.badge, { borderColor: statusColor }]}>
                 <Text style={[styles.badgeText, { color: statusColor }]}>
-                  {gift.status.toUpperCase()}
+                  {isSender ? (STATUS_LABELS[gift.status] ?? gift.status.toUpperCase()) : gift.status.toUpperCase()}
                 </Text>
               </View>
             }
@@ -196,7 +213,7 @@ export default function GiftDetailScreen() {
             <Text style={styles.cash}>${Number(gift.cash_amount).toFixed(2)}</Text>
             {isSender && gift.fee_amount ? (
               <Text style={styles.feeNote}>
-                + ${Number(gift.fee_amount).toFixed(2)} processing fee
+                + ${Number(gift.fee_amount).toFixed(2)} card processing
               </Text>
             ) : null}
           </View>
@@ -215,7 +232,7 @@ export default function GiftDetailScreen() {
           <Text style={styles.cardLabel}>TIMELINE</Text>
           <TimelineRow label="Created" value={fmtDate(gift.created_at)} />
           <TimelineRow
-            label={gift.status === 'scheduled' ? 'Delivers' : 'Delivered'}
+            label={gift.status === 'scheduled' ? 'Opens' : 'Ready to open'}
             value={fmtDate(gift.sent_at ?? gift.scheduled_send_at)}
           />
           {gift.claimed_at ? <TimelineRow label="Claimed" value={fmtDate(gift.claimed_at)} /> : null}
@@ -225,8 +242,19 @@ export default function GiftDetailScreen() {
         </View>
 
         {/* Actions */}
-        {isSender && gift.status === 'sent' ? (
-          <LuxButton title="Share claim link" onPress={shareClaimLink} />
+        {isSender && (gift.status === 'sent' || gift.status === 'scheduled') ? (
+          <>
+            <LuxButton
+              title={`Text it to ${firstName}`}
+              chevron
+              onPress={() => textGift(gift.recipient_contacts?.phone, shareText())}
+            />
+            <LuxButton
+              title="Share another way"
+              variant="outline"
+              onPress={() => shareGift(shareText())}
+            />
+          </>
         ) : null}
 
         {isSender && gift.status === 'scheduled' ? (

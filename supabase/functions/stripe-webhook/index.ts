@@ -55,6 +55,21 @@ serve(async (req) => {
         .update({ payment_status: "paid" })
         .eq("stripe_payment_intent_id", pi.id)
         .eq("payment_status", "pending");
+
+      // A gift that is due now opens the moment it is paid — the sender is
+      // about to text the link, so it must not wait for the next cron tick.
+      const now = new Date();
+      await supabase
+        .from("gifts")
+        .update({
+          status: "sent",
+          sent_at: now.toISOString(),
+          expires_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .eq("stripe_payment_intent_id", pi.id)
+        .eq("status", "scheduled")
+        .eq("payment_status", "paid")
+        .lte("scheduled_send_at", now.toISOString());
     } else if (event.type === "payment_intent.payment_failed" && pi?.id) {
       await supabase
         .from("gifts")

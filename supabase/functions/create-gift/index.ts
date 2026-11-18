@@ -47,6 +47,18 @@ async function stripe(path: string, body: Record<string, string>): Promise<any> 
   return data;
 }
 
+// Smallest charge (in cents) that leaves `giftCents` after Stripe's fee.
+// Keep in sync with src/lib/fees.ts.
+function stripeFee(totalCents: number): number {
+  return Math.round(totalCents * 0.029) + 30;
+}
+function totalWithFee(giftCents: number): number {
+  let total = Math.ceil((giftCents + 30) / (1 - 0.029));
+  while (total - stripeFee(total) < giftCents) total += 1;
+  while (total - 1 - stripeFee(total - 1) >= giftCents) total -= 1;
+  return total;
+}
+
 interface CreateGiftPayload {
   recipient_contact_id: string;
   // Occasion slug — templates.id is text ('birthday', 'anniversary', ...)
@@ -110,9 +122,11 @@ serve(async (req) => {
       .single();
     if (!template) return json({ error: "Template not found" }, 404);
 
-    // Stripe pass-through fee (2.9% + $0.30), rounded to cents
-    const feeAmount = Math.round((cashAmount * 0.029 + 0.30) * 100) / 100;
-    const totalCents = Math.round((cashAmount + feeAmount) * 100);
+    // The sender covers card processing in full: the total is grossed up so
+    // that after Stripe's 2.9% + 30¢ the gift amount is left whole.
+    const giftCents = Math.round(cashAmount * 100);
+    const totalCents = totalWithFee(giftCents);
+    const feeAmount = (totalCents - giftCents) / 100;
 
     // allow_redirects 'never' keeps confirmation card-based, which the
     // PaymentSheet supports and server-side test confirmation requires.
@@ -157,6 +171,7 @@ serve(async (req) => {
 
     return json({
       gift_id: gift.id,
+      claim_token: gift.claim_token,
       client_secret: paymentIntent.client_secret,
       total_cents: totalCents,
       mode: STRIPE_MODE,

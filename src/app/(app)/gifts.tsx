@@ -163,7 +163,7 @@ export default function GiftsScreen() {
                     </View>
                     <View style={[styles.badge, { borderColor: STATUS_COLORS[item.status] ?? Brand.muted }]}>
                       <Text style={[styles.badgeText, { color: STATUS_COLORS[item.status] ?? Brand.muted }]}>
-                        {item.status.toUpperCase()}
+                        {!received && item.status === 'sent' ? 'READY' : item.status.toUpperCase()}
                       </Text>
                     </View>
                     <Ionicons name="chevron-forward" size={16} color={Lux.gold} />
