@@ -59,7 +59,16 @@ export function LuxButton({
       >
         {loading
           ? <ActivityIndicator color={Lux.gold} />
-          : <T style={styles.outlineText}>{title.toUpperCase()}</T>}
+          : (
+            <T
+              style={[styles.outlineText, chevron && styles.textWithChevron]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {title.toUpperCase()}
+            </T>
+          )}
         {chevron && !loading && (
           <Ionicons name="chevron-forward" size={16} color={Lux.gold} style={styles.btnChevron} />
         )}
@@ -83,7 +92,16 @@ export function LuxButton({
         <View style={styles.goldInset} pointerEvents="none" />
         {loading
           ? <ActivityIndicator color={Lux.ink} />
-          : <T style={styles.goldText}>{title.toUpperCase()}</T>}
+          : (
+            <T
+              style={[styles.goldText, chevron && styles.textWithChevron]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.75}
+            >
+              {title.toUpperCase()}
+            </T>
+          )}
         {chevron && !loading && (
           <Ionicons name="chevron-forward" size={20} color={Lux.ink} style={styles.btnChevron} />
         )}
@@ -230,8 +248,10 @@ const styles = StyleSheet.create({
     shadowColor: '#E9C766', shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.28, shadowRadius: 12, elevation: 6,
   },
+  // Labels stay on one line; the chevron sits in its own reserved gutter.
+  textWithChevron: { marginHorizontal: 26 },
   goldBtn: {
-    height: 56, borderRadius: 14, paddingHorizontal: 44,
+    height: 56, borderRadius: 14, paddingHorizontal: 18,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: '#FBEBB5',
   },
@@ -241,15 +261,15 @@ const styles = StyleSheet.create({
   },
   goldText: {
     color: Lux.ink, fontSize: 17, fontWeight: '700',
-    letterSpacing: 3, fontFamily: SERIF,
+    letterSpacing: 2.5, fontFamily: SERIF, flexShrink: 1,
   },
   outlineBtn: {
-    height: 54, borderRadius: 14, paddingHorizontal: 40,
+    height: 54, borderRadius: 14, paddingHorizontal: 18,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     borderWidth: 1.5, borderColor: 'rgba(217,180,90,0.75)',
     backgroundColor: 'rgba(255,255,255,0.02)',
   },
-  outlineText: { color: Lux.gold, fontSize: 13, fontWeight: '600', letterSpacing: 2.5 },
+  outlineText: { color: Lux.gold, fontSize: 13, fontWeight: '600', letterSpacing: 2.5, flexShrink: 1 },
   btnChevron: { position: 'absolute', right: 16 },
   btnDisabled: { opacity: 0.4 },
 

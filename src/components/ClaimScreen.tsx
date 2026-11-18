@@ -336,8 +336,8 @@ export function ClaimScreen({ token }: { token: string | undefined }) {
                   style={[
                     styles.flash,
                     {
-                      opacity: flash.interpolate({ inputRange: [0, 0.25, 1], outputRange: [0, 0.85, 0] }),
-                      transform: [{ scale: flash.interpolate({ inputRange: [0, 1], outputRange: [0.3, 7] }) }],
+                      opacity: flash.interpolate({ inputRange: [0, 0.25, 1], outputRange: [0, 0.8, 0] }),
+                      transform: [{ scale: flash.interpolate({ inputRange: [0, 1], outputRange: [0.3, 5] }) }],
                     },
                   ]}
                 />
@@ -403,7 +403,7 @@ export function ClaimScreen({ token }: { token: string | undefined }) {
                   ) : (
                     <>
                       <LuxButton
-                        title={`Collect your ${cash}`}
+                        title={`Collect ${cash}`}
                         onPress={startPayout}
                         loading={payoutBusy}
                         style={{ width: '100%' }}
@@ -578,9 +578,12 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(217,180,90,0.4)',
   },
   envelopeImage: { width: '100%', height: '100%' },
+  // A soft-edged disc: the glow around it hides the rim as it expands
   flash: {
-    position: 'absolute', width: 70, height: 70, borderRadius: 35,
-    backgroundColor: '#F6E3A1',
+    position: 'absolute', width: 60, height: 60, borderRadius: 30,
+    backgroundColor: 'rgba(246,227,161,0.55)',
+    shadowColor: '#F6E3A1', shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 1, shadowRadius: 26,
   },
 
   messageCard: {

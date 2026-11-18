@@ -1,9 +1,10 @@
 import { Linking, Platform, Share } from 'react-native';
 
 // Gifts travel as a link the sender texts from their own phone.
-// The ?t= form is a real static page (HTTP 200), which is what lets Messages
-// show a link preview; /claim/<token> keeps working for older links.
-const CLAIM_BASE = 'https://delacroix.expo.app/claim?t=';
+// The /claim/?t= form is a real static page (HTTP 200), which is what lets
+// Messages show a link preview; /claim/<token> keeps working for older
+// links. The slash before "?" matters: the host answers 404 without it.
+const CLAIM_BASE = 'https://delacroix.expo.app/claim/?t=';
 
 export function claimUrl(token: string): string {
   return `${CLAIM_BASE}${token}`;

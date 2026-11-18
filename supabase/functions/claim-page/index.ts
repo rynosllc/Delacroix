@@ -21,7 +21,7 @@ const supabase = createClient(
 );
 
 const STRIPE_KEY = Deno.env.get("STRIPE_SECRET_KEY_TEST") || Deno.env.get("STRIPE_SECRET_KEY") || "";
-const CLAIM_PAGE_URL = "https://delacroix.expo.app/claim?t=";
+const CLAIM_PAGE_URL = "https://delacroix.expo.app/claim/?t=";
 
 async function stripeCall(method: "GET" | "POST", path: string, body?: Record<string, string>): Promise<any> {
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
